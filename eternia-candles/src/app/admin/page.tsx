@@ -141,7 +141,7 @@ export default function AdminEterniaPage() {
           .select("*, pedido_items(*)")
           .order("fecha_pedido", { ascending: false });
 
-        if (!error && pedData && pedData.length > 0) {
+        if (!error && pedData) {
           const pedidosMapeados: PedidoCompleto[] = pedData.map((p: any) => ({
             id: p.id,
             codigo: p.codigo,
@@ -175,12 +175,15 @@ export default function AdminEterniaPage() {
             })),
           }));
           setPedidos(pedidosMapeados);
-          setCodigoReciboSeleccionado(pedidosMapeados[0].codigo);
+          localStorage.setItem("eternia_pedidos_v1", JSON.stringify(pedidosMapeados));
+          if (pedidosMapeados.length > 0) {
+            setCodigoReciboSeleccionado(pedidosMapeados[0].codigo);
+          }
           return;
         }
       }
 
-      // Respaldo local si Supabase no está disponible
+      // Respaldo local únicamente si Supabase no está disponible
       const pedLocalAdmin = localStorage.getItem("eternia_pedidos_v1");
       if (pedLocalAdmin) {
         try {
@@ -214,10 +217,61 @@ export default function AdminEterniaPage() {
     localStorage.setItem("eternia_pedidos_v1", JSON.stringify(nuevos));
   };
 
-  const eliminarPedido = (id: string, codigo: string) => {
+  // Eliminar pedido tanto en Supabase como en el panel local
+  const eliminarPedido = async (id: string, codigo: string) => {
     if (!confirm(`¿Estás seguro de eliminar el pedido ${codigo}?`)) return;
+
+    if (isSupabaseConfigured) {
+      // 1. Eliminar los items hijos primero
+      await supabase
+        .from("pedido_items")
+        .delete()
+        .eq("pedido_id", id);
+
+      // 2. Eliminar el pedido principal en Supabase
+      const { error: errPed } = await supabase
+        .from("pedidos")
+        .delete()
+        .eq("id", id);
+
+      if (errPed) {
+        console.error("Error al eliminar en Supabase:", errPed);
+        alert(`No se pudo eliminar de la nube: ${errPed.message}`);
+        return;
+      }
+    }
+
     const actualizados = pedidos.filter((p) => p.id !== id);
     guardarPedidos(actualizados);
+  };
+
+  // Actualizar estado de aprobación tanto en Supabase como en el panel local
+  const cambiarAprobacionPedido = async (ped: PedidoCompleto, nuevoAprobado: boolean) => {
+    const nuevoEstado = nuevoAprobado ? "En Producción (Abono 50%)" : "Pendiente Anticipo";
+    const nuevoDinero = nuevoAprobado ? ped.abono_50 : 0;
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from("pedidos")
+        .update({
+          aprobado: nuevoAprobado,
+          estado: nuevoEstado,
+          dinero_recibido: nuevoDinero,
+        })
+        .eq("id", ped.id);
+
+      if (error) {
+        console.error("Error al actualizar aprobación en Supabase:", error);
+      }
+    }
+
+    const mod: PedidoCompleto = {
+      ...ped,
+      aprobado: nuevoAprobado,
+      estado: nuevoEstado,
+      dinero_recibido: nuevoDinero,
+    };
+    guardarPedidos(pedidos.map((x) => (x.id === ped.id ? mod : x)));
   };
 
   const agregarItemAlPos = () => {
@@ -241,12 +295,19 @@ export default function AdminEterniaPage() {
     const ceraG = posItems.reduce((acc, it) => acc + it.producto.cera_g * it.cantidad, 0);
     const fragMl = posItems.reduce((acc, it) => acc + it.producto.fragancia_ml * it.cantidad, 0);
     const pabCm = posItems.reduce((acc, it) => acc + it.producto.pabilo_cm * it.cantidad, 0);
-    const proximoCodigo = `PED-${String(pedidos.length + 1).padStart(3, "0")}`;
+
+    const numerosExistentes = pedidos.map((p) => {
+      const partes = String(p.codigo || "").split("-");
+      const num = parseInt(partes[1], 10);
+      return isNaN(num) ? 0 : num;
+    });
+    const siguienteNum = Math.max(0, ...numerosExistentes) + 1;
+    const proximoCodigo = `PED-${String(siguienteNum).padStart(3, "0")}`;
 
     return { valorTotal, costoTotal, abono50, gananciaLibre, ceraG, fragMl, pabCm, proximoCodigo };
-  }, [posItems, posDescuentoPct, pedidos.length]);
+  }, [posItems, posDescuentoPct, pedidos]);
 
-  const registrarPedidoDesdePOS = () => {
+  const registrarPedidoDesdePOS = async () => {
     if (posItems.length === 0) {
       alert("Agrega al menos una vela al carrito.");
       return;
@@ -284,6 +345,53 @@ export default function AdminEterniaPage() {
         subtotal: it.producto.precio_catalogo * it.cantidad,
       })),
     };
+
+    if (isSupabaseConfigured) {
+      const { data: pedInsertado, error: errPed } = await supabase
+        .from("pedidos")
+        .insert({
+          codigo: nuevo.codigo,
+          cliente_nombre: nuevo.cliente_nombre,
+          cliente_whatsapp: nuevo.cliente_whatsapp,
+          aprobado: nuevo.aprobado,
+          descuento_pct: nuevo.descuento_pct,
+          valor_total: nuevo.valor_total,
+          costo_total: nuevo.costo_total,
+          abono_50: nuevo.abono_50,
+          dinero_recibido: nuevo.dinero_recibido,
+          ganancia_libre: nuevo.ganancia_libre,
+          cera_total_g: nuevo.cera_total_g,
+          fragancia_total_ml: nuevo.fragancia_total_ml,
+          pabilo_total_cm: nuevo.pabilo_total_cm,
+          medio_pago: nuevo.medio_pago,
+          estado: nuevo.estado,
+          origen: nuevo.origen,
+          fecha_pedido: nuevo.fecha_pedido,
+          fecha_entrega: nuevo.fecha_entrega,
+        })
+        .select()
+        .single();
+
+      if (!errPed && pedInsertado) {
+        nuevo.id = pedInsertado.id;
+        await supabase.from("pedido_items").insert(
+          nuevo.items.map((item) => ({
+            pedido_id: pedInsertado.id,
+            producto_nombre: item.producto_nombre,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio_unitario,
+            costo_unitario: item.costo_unitario,
+            cera_unitaria_g: item.cera_unitaria_g,
+            fragancia_unitaria_ml: item.fragancia_unitaria_ml,
+            pabilo_unitaria_cm: item.pabilo_unitario_cm,
+            tipo_empaque: item.tipo_empaque,
+            subtotal: item.subtotal,
+          }))
+        );
+      } else if (errPed) {
+        console.error("Error al guardar pedido POS en Supabase:", errPed);
+      }
+    }
 
     guardarPedidos([nuevo, ...pedidos]);
     setCodigoReciboSeleccionado(nuevo.codigo);
@@ -687,10 +795,7 @@ export default function AdminEterniaPage() {
                       <td className="p-3">
                         <select
                           value={ped.aprobado ? "Sí" : "No"}
-                          onChange={(e) => {
-                            const mod = { ...ped, aprobado: e.target.value === "Sí" };
-                            guardarPedidos(pedidos.map(x => x.id === ped.id ? mod : x));
-                          }}
+                          onChange={(e) => cambiarAprobacionPedido(ped, e.target.value === "Sí")}
                           className={`px-2 py-1 rounded font-bold ${ped.aprobado ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                         >
                           <option value="Sí">Sí</option>

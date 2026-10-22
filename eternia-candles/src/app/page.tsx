@@ -153,22 +153,20 @@ export default function TiendaEterniaPage() {
 
     setEnviando(true);
     try {
-      // Obtener el siguiente consecutivo de manera segura consultando el último pedido en Supabase
+      // 1. Consultar todos los códigos en Supabase para encontrar el número más alto real y sumarle 1
       let nuevoNumero = 1;
       if (isSupabaseConfigured) {
-        const { data: ultimoPedido, error: errUltimo } = await supabase
+        const { data: listaCodigos, error: errCodigos } = await supabase
           .from("pedidos")
-          .select("codigo")
-          .order("created_at", { ascending: false })
-          .limit(1);
+          .select("codigo");
 
-        if (!errUltimo && ultimoPedido && ultimoPedido.length > 0) {
-          const ultimoCodigo = ultimoPedido[0].codigo; // Ej: "PED-003"
-          const partes = ultimoCodigo.split("-");
-          const numeroActual = parseInt(partes[1], 10);
-          if (!isNaN(numeroActual)) {
-            nuevoNumero = numeroActual + 1;
-          }
+        if (!errCodigos && listaCodigos && listaCodigos.length > 0) {
+          const numeros = listaCodigos.map((p: { codigo?: string }) => {
+            const partes = String(p.codigo || "").split("-");
+            const num = parseInt(partes[1], 10);
+            return isNaN(num) ? 0 : num;
+          });
+          nuevoNumero = Math.max(0, ...numeros) + 1;
         }
       }
       const codigoPedido = `PED-${String(nuevoNumero).padStart(3, "0")}`;
@@ -215,7 +213,7 @@ export default function TiendaEterniaPage() {
         })),
       };
 
-      // Guardar en la base de datos de Supabase para que llegue al panel administrativo en la nube
+      // 2. Guardar en la base de datos de Supabase
       if (isSupabaseConfigured) {
         const { data: pedInsertado, error: errPed } = await supabase
           .from("pedidos")
@@ -243,7 +241,7 @@ export default function TiendaEterniaPage() {
           .single();
 
         if (!errPed && pedInsertado) {
-          await supabase.from("pedido_items").insert(
+          const { error: errItems } = await supabase.from("pedido_items").insert(
             nuevoPedido.items.map((item: PedidoItemDetalle) => ({
               pedido_id: pedInsertado.id,
               producto_nombre: item.producto_nombre,
@@ -252,13 +250,19 @@ export default function TiendaEterniaPage() {
               costo_unitario: item.costo_unitario,
               cera_unitaria_g: item.cera_unitaria_g,
               fragancia_unitaria_ml: item.fragancia_unitaria_ml,
-              pabilo_total_cm: item.pabilo_unitario_cm * item.cantidad,
+              pabilo_unitaria_cm: item.pabilo_unitario_cm,
               tipo_empaque: item.tipo_empaque,
               subtotal: item.subtotal,
             }))
           );
+
+          if (errItems) {
+            console.error("Error al insertar items en Supabase:", errItems);
+          }
         } else {
           console.error("Error al insertar en Supabase:", errPed);
+          alert(`Hubo un problema al registrar el pedido en la nube: ${errPed?.message || "Intenta de nuevo"}`);
+          return;
         }
       }
 
