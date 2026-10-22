@@ -200,9 +200,7 @@ export default function TiendaEterniaPage() {
         })),
       };
 
-      const actualizados = [nuevoPedido, ...pedidosLocales];
-      localStorage.setItem("eternia_pedidos_v1", JSON.stringify(actualizados));
-
+      // Guardar en la base de datos de Supabase para que llegue al panel administrativo en la nube
       if (isSupabaseConfigured) {
         const { data: pedInsertado, error: errPed } = await supabase
           .from("pedidos")
@@ -239,13 +237,19 @@ export default function TiendaEterniaPage() {
               costo_unitario: item.costo_unitario,
               cera_unitaria_g: item.cera_unitaria_g,
               fragancia_unitaria_ml: item.fragancia_unitaria_ml,
-              pabilo_unitario_cm: item.pabilo_unitario_cm,
+              pabilo_unitaria_cm: item.pabilo_unitario_cm,
               tipo_empaque: item.tipo_empaque,
               subtotal: item.subtotal,
             }))
           );
+        } else {
+          console.error("Error al insertar en Supabase:", errPed);
         }
       }
+
+      // Respaldo local
+      const actualizados = [nuevoPedido, ...pedidosLocales];
+      localStorage.setItem("eternia_pedidos_v1", JSON.stringify(actualizados));
 
       const textoWA = generarMensajeWhatsAppPedido({
         codigoPedido,
