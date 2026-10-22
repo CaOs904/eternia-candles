@@ -12,7 +12,12 @@ import {
   CheckCircle,
   Trash2,
   ArrowLeft,
+  Lock,
+  Mail,
+  KeyRound,
+  LogOut,
 } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import {
   CATALOGO_INICIAL_VELAS,
   INSUMOS_INICIALES,
@@ -29,6 +34,13 @@ import {
 } from "../../lib/eternia-engine";
 
 export default function AdminEterniaPage() {
+  // Estado de Autenticación de Supabase
+  const [sesionVerificada, setSesionVerificada] = useState<boolean>(false);
+  const [cargandoAuth, setCargandoAuth] = useState<boolean>(true);
+  const [emailLogin, setEmailLogin] = useState<string>("");
+  const [passwordLogin, setPasswordLogin] = useState<string>("");
+  const [errorLogin, setErrorLogin] = useState<string | null>(null);
+
   const [tabActiva, setTabActiva] = useState<"POS" | "PEDIDOS" | "MOLDES" | "INVENTARIO" | "RECIBO">("POS");
   const [productos, setProductos] = useState<ProductoVela[]>(CATALOGO_INICIAL_VELAS);
   const [insumos, setInsumos] = useState<InsumoItem[]>(INSUMOS_INICIALES);
@@ -63,7 +75,65 @@ export default function AdminEterniaPage() {
   const [vasosCemento, setVasosCemento] = useState<number>(1);
   const [vasosAgua, setVasosAgua] = useState<number>(2);
 
+  // Verificar sesión activa de Supabase al cargar
   useEffect(() => {
+    async function verificarSesion() {
+      if (!isSupabaseConfigured) {
+        // Si Supabase no está configurado, permitimos acceso temporal con advertencia
+        setSesionVerificada(true);
+        setCargandoAuth(false);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setSesionVerificada(true);
+      }
+      setCargandoAuth(false);
+
+      // Escuchar cambios de sesión en tiempo real
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSesionVerificada(!!session);
+      });
+
+      return () => subscription.unsubscribe();
+    }
+    verificarSesion();
+  }, []);
+
+  const iniciarSesionAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorLogin(null);
+
+    if (!isSupabaseConfigured) {
+      alert("Supabase no está configurado correctamente en el entorno.");
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: emailLogin.trim(),
+      password: passwordLogin,
+    });
+
+    if (error) {
+      setErrorLogin("Correo o contraseña incorrectos. Verifica tus credenciales.");
+    } else {
+      setSesionVerificada(true);
+    }
+  };
+
+  const cerrarSesionAdmin = async () => {
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
+    setSesionVerificada(false);
+    setEmailLogin("");
+    setPasswordLogin("");
+  };
+
+  useEffect(() => {
+    if (!sesionVerificada) return;
+
     const pedLocalAdmin = localStorage.getItem("eternia_pedidos_v1");
     if (pedLocalAdmin) {
       try {
@@ -126,7 +196,7 @@ export default function AdminEterniaPage() {
     if (insLocal) {
       try { setInsumos(JSON.parse(insLocal)); } catch (e) { console.error(e); }
     }
-  }, []);
+  }, [sesionVerificada]);
 
   const guardarPedidos = (nuevos: PedidoCompleto[]) => {
     setPedidos(nuevos);
@@ -285,6 +355,100 @@ export default function AdminEterniaPage() {
 
   const pedidoReciboActual = useMemo(() => pedidos.find((p) => p.codigo === codigoReciboSeleccionado) || pedidos[0] || null, [pedidos, codigoReciboSeleccionado]);
 
+  // Pantalla de carga inicial al comprobar sesión
+  if (cargandoAuth) {
+    return (
+      <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center font-sans">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-full border-2 border-[#C89D7C] border-t-transparent animate-spin mx-auto"></div>
+          <p className="text-xs text-[#7A685F] font-serif tracking-widest">VERIFICANDO SEGURIDAD ETERNIA...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no ha iniciado sesión, mostramos la pantalla de bloqueo boutique
+  if (!sesionVerificada) {
+    return (
+      <div className="min-h-screen bg-[#FAF6F0] flex items-center justify-center p-4 font-sans">
+        <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-[#E8D5CE] shadow-xl space-y-6 relative overflow-hidden">
+          <div className="absolute right-[-20px] bottom-[-20px] text-[#FAF6F0] pointer-events-none select-none opacity-50 font-serif text-[120px] font-bold">
+            E
+          </div>
+
+          <div className="text-center space-y-2">
+            <div className="inline-flex w-12 h-12 rounded-full bg-[#3B2B23] items-center justify-center text-[#C89D7C] shadow-sm mb-1">
+              <Lock className="w-5 h-5" />
+            </div>
+            <h1 className="text-2xl font-serif font-bold tracking-[0.2em] text-[#3B2B23]">
+              ACCESO PRIVADO
+            </h1>
+            <p className="text-xs text-[#7A685F] italic tracking-wider font-serif">
+              Panel Administrativo • Eternia Candles
+            </p>
+          </div>
+
+          <form onSubmit={iniciarSesionAdmin} className="space-y-4 pt-2">
+            {errorLogin && (
+              <div className="p-3 rounded-xl bg-[#FADBD8] text-[#922B21] text-xs font-medium border border-[#922B21]/20">
+                {errorLogin}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-[#3B2B23] mb-1">Correo Electrónico</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-[#7A685F] absolute left-3.5 top-3.5" />
+                <input
+                  type="email"
+                  required
+                  value={emailLogin}
+                  onChange={(e) => setEmailLogin(e.target.value)}
+                  placeholder="tucorreo@ejemplo.com"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8D5CE] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89D7C]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#3B2B23] mb-1">Contraseña Maestra</label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-[#7A685F] absolute left-3.5 top-3.5" />
+                <input
+                  type="password"
+                  required
+                  value={passwordLogin}
+                  onChange={(e) => setPasswordLogin(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8D5CE] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89D7C]"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-[#3B2B23] hover:bg-[#523d32] text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition text-sm tracking-wider cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-[#C89D7C]" />
+              Iniciar Sesión Segura
+            </button>
+          </form>
+
+          <div className="pt-4 border-t border-[#E8D5CE] text-center">
+            <Link
+              href="/"
+              className="text-xs text-[#7A685F] hover:text-[#3B2B23] font-medium flex items-center justify-center gap-1.5 transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Regresar a la Tienda Pública</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Panel Administrativo Completo (Protegido)
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#3B2B23] font-sans">
       <header className="no-print bg-[#3B2B23] text-[#FAF6F0] px-4 sm:px-8 py-4 shadow-md">
@@ -307,13 +471,22 @@ export default function AdminEterniaPage() {
             </div>
           </div>
 
-          <Link
-            href="/"
-            className="bg-[#FAF6F0]/10 hover:bg-[#FAF6F0]/20 text-[#FAF6F0] text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition tracking-wider"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Ver Tienda Pública</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="bg-[#FAF6F0]/10 hover:bg-[#FAF6F0]/20 text-[#FAF6F0] text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition tracking-wider"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Ver Tienda</span>
+            </Link>
+            <button
+              onClick={cerrarSesionAdmin}
+              className="bg-red-900/60 hover:bg-red-900 text-[#FAF6F0] text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition tracking-wider cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 text-[#FADBD8]" />
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
         </div>
 
         <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto pt-4">
@@ -344,7 +517,7 @@ export default function AdminEterniaPage() {
 
       <main className="max-w-7xl mx-auto p-4 sm:p-8">
         {/* ========================================== */}
-        {/* PESTAÑA 1: COTIZADOR POS (COMPLETO RESTAURADO) */}
+        {/* PESTAÑA 1: COTIZADOR POS */}
         {/* ========================================== */}
         {tabActiva === "POS" && (
           <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -479,6 +652,9 @@ export default function AdminEterniaPage() {
           </div>
         )}
 
+        {/* ========================================== */}
+        {/* PESTAÑA 2: CONTROL DE PEDIDOS */}
+        {/* ========================================== */}
         {tabActiva === "PEDIDOS" && (
           <div className="no-print space-y-6">
             <div className="bg-white rounded-2xl border border-[#E8D5CE] overflow-x-auto shadow-xs">
@@ -525,6 +701,9 @@ export default function AdminEterniaPage() {
           </div>
         )}
 
+        {/* ========================================== */}
+        {/* PESTAÑA 3: RECIBO / PDF */}
+        {/* ========================================== */}
         {tabActiva === "RECIBO" && (
           <div className="space-y-6">
             <div className="no-print bg-white p-4 rounded-2xl border border-[#E8D5CE] flex justify-between items-center shadow-xs">
@@ -563,7 +742,7 @@ export default function AdminEterniaPage() {
                 <div className="grid grid-cols-2 gap-4 bg-[#FAF6F0] p-3.5 rounded-xl border border-[#E8D5CE] text-xs">
                   <div className="space-y-0.5">
                     <p className="text-[#7A685F] uppercase tracking-wider text-[9px] font-bold">Datos del Cliente</p>
-                    <p className="text-xs font-serif font-bold text-[#3B2B23]">{ped_cliente_safe_render(pedidoReciboActual.cliente_nombre)}</p>
+                    <p className="text-xs font-serif font-bold text-[#3B2B23]">{pedidoReciboActual.cliente_nombre}</p>
                     <p className="text-[#3B2B23]">WhatsApp: <strong className="font-mono">{pedidoReciboActual.cliente_whatsapp}</strong></p>
                   </div>
                   <div className="space-y-0.5 text-right">
@@ -633,6 +812,9 @@ export default function AdminEterniaPage() {
           </div>
         )}
 
+        {/* ========================================== */}
+        {/* PESTAÑA 4: NUEVOS MOLDES */}
+        {/* ========================================== */}
         {tabActiva === "MOLDES" && (
           <div className="no-print grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-[#E8D5CE] shadow-xs space-y-4">
@@ -840,6 +1022,9 @@ export default function AdminEterniaPage() {
           </div>
         )}
 
+        {/* ========================================== */}
+        {/* PESTAÑA 5: INVENTARIO */}
+        {/* ========================================== */}
         {tabActiva === "INVENTARIO" && (
           <div className="no-print bg-white rounded-2xl border border-[#E8D5CE] overflow-x-auto shadow-xs">
             <div className="p-5 border-b border-[#F3ECE1]">
@@ -866,7 +1051,7 @@ export default function AdminEterniaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F3ECE1]">
-                {insumos.map((ins) => {
+                {insumos.map((ins: InsumoItem) => {
                   const stockInicial = ins.medida_por_unidad * ins.cantidad_comprada;
                   const pedidosAprobados = pedidos.filter((p) => p.aprobado);
 
@@ -961,8 +1146,4 @@ export default function AdminEterniaPage() {
       </main>
     </div>
   );
-}
-
-function ped_cliente_safe_render(nombre: string) {
-  return nombre || "";
 }
