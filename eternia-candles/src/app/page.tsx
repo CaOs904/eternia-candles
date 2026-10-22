@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Sparkles,
   ShoppingBag,
@@ -281,6 +281,9 @@ export default function TiendaEterniaPage() {
   const [gaticoCarritoSaltando, setGaticoCarritoSaltando] = useState<boolean>(false);
   const [gaticoLogoMoviendo, setGaticoLogoMoviendo] = useState<boolean>(false);
 
+  // Registro de elementos que ya aparecieron con scroll (para animar 1 sola vez por elemento)
+  const elementosReveladosRef = useRef<Set<string>>(new Set());
+
   // Modales
   const [modalMapaAbierto, setModalMapaAbierto] = useState<boolean>(false);
   const [modalCuidadoAbierto, setModalCuidadoAbierto] = useState<boolean>(false);
@@ -428,6 +431,52 @@ export default function TiendaEterniaPage() {
       return coincideCat && coincideBusq;
     });
   }, [productos, idsOcultos, categoriaActiva, busqueda]);
+
+  // PASO 5: IntersectionObserver para revelar suavemente títulos de sección y tarjetas una sola vez
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const prefiereSinMovimiento =
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefiereSinMovimiento || !("IntersectionObserver" in window)) {
+      return;
+    }
+
+    const nodos = document.querySelectorAll<HTMLElement>("[data-reveal-id]");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const el = entry.target as HTMLElement;
+            const id = el.getAttribute("data-reveal-id");
+            if (id) elementosReveladosRef.current.add(id);
+
+            el.classList.add("eternia-reveal-visible");
+            observer.unobserve(el);
+
+            const delayMs = parseInt(el.getAttribute("data-reveal-delay") || "0", 10) || 0;
+            window.setTimeout(() => {
+              el.classList.remove("eternia-reveal-init");
+              el.classList.add("eternia-reveal-done");
+            }, 620 + delayMs);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -20px 0px" }
+    );
+
+    nodos.forEach((el) => {
+      const id = el.getAttribute("data-reveal-id");
+      if (!id || elementosReveladosRef.current.has(id)) {
+        el.classList.remove("eternia-reveal-init");
+        el.classList.add("eternia-reveal-done");
+        return;
+      }
+      el.classList.add("eternia-reveal-init");
+      observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [productosFiltrados]);
 
   const agregarAlCarrito = (producto: ProductoVela, cant: number = 1) => {
     const aromaFinal = obtenerAromaDeProducto(producto);
@@ -833,7 +882,7 @@ export default function TiendaEterniaPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#3B2B23] flex flex-col font-sans">
-      {/* ESTILOS PASO 4: HOVER SOLO EN ESCRITORIO, SOLO TRANSFORM Y OPACITY, RESPETANDO REDUCED MOTION */}
+      {/* ESTILOS PASO 4 (HOVER ESCRITORIO) + PASO 5 (SCROLL REVEAL CON INTERSECTION OBSERVER) */}
       <style>{`
         .eternia-card {
           position: relative;
@@ -852,17 +901,41 @@ export default function TiendaEterniaPage() {
         .eternia-card-deseos::after {
           box-shadow: 0 22px 44px -8px rgba(200, 157, 124, 0.28), 0 10px 22px -6px rgba(59, 43, 35, 0.16);
         }
+        @media (prefers-reduced-motion: no-preference) {
+          .eternia-reveal-init {
+            opacity: 0;
+            transform: translateY(16px);
+            will-change: transform, opacity;
+            transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1), transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+            transition-delay: var(--reveal-delay, 0ms);
+          }
+          .eternia-reveal-init.eternia-reveal-visible {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
         @media (hover: hover) and (pointer: fine) {
           @media (prefers-reduced-motion: no-preference) {
             .eternia-card {
               will-change: transform;
               transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1);
             }
+            .eternia-card.eternia-reveal-init {
+              transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1), transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+              transition-delay: var(--reveal-delay, 0ms);
+            }
+            .eternia-card.eternia-reveal-done {
+              transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1);
+              transition-delay: 0ms;
+            }
             .eternia-card::after {
               transition: opacity 350ms cubic-bezier(0.22, 1, 0.36, 1);
             }
-            .eternia-card:hover {
+            .eternia-card:hover,
+            .eternia-card.eternia-reveal-init.eternia-reveal-visible:hover {
               transform: translateY(-4px) scale(1.03);
+              transition-duration: 350ms;
+              transition-delay: 0ms;
               z-index: 20;
             }
             .eternia-card:hover::after {
@@ -872,9 +945,12 @@ export default function TiendaEterniaPage() {
         }
         @media (prefers-reduced-motion: reduce) {
           .eternia-card,
-          .eternia-card::after {
+          .eternia-card::after,
+          .eternia-reveal-init,
+          .eternia-reveal-init.eternia-reveal-visible {
             transition: none !important;
             transform: none !important;
+            opacity: 1 !important;
             will-change: auto !important;
           }
         }
@@ -884,7 +960,7 @@ export default function TiendaEterniaPage() {
         ✨ Velas artesanales hechas con amor y esencia natural • Personaliza tu aroma y tarjeta de regalo • Pedido mínimo $15.000
       </div>
 
-      {/* CABECERA CON EL GATICO TRIGUEÑO GRIS Y BLANCO ENCIMA DE LA ESTRELLITA DEL LOGO */}
+      {/* CABECERA (NO SE ANIMA CON SCROLL) */}
       <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur-md border-b border-[#E8D5CE] px-4 sm:px-8 pt-6 pb-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div
@@ -960,12 +1036,14 @@ export default function TiendaEterniaPage() {
 
       <section className="bg-gradient-to-b from-[#F3ECE1] to-[#FAF6F0] pt-10 pb-8 px-4 sm:px-8 border-b border-[#E8D5CE]">
         <div className="max-w-7xl mx-auto text-center space-y-4">
-          <span className="inline-block bg-[#E8D5CE]/60 text-[#3B2B23] text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-widest font-serif">
-            Catálogo Oficial • @eternia.candles
-          </span>
-          <h2 className="text-3xl sm:text-5xl font-serif font-medium text-[#3B2B23] max-w-3xl mx-auto leading-relaxed tracking-wide">
-            Ilumina tus momentos con diseño, calma y tu aroma favorito
-          </h2>
+          <div data-reveal-id="titulo-hero" data-reveal-delay="0" className="space-y-4">
+            <span className="inline-block bg-[#E8D5CE]/60 text-[#3B2B23] text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-widest font-serif">
+              Catálogo Oficial • @eternia.candles
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-serif font-medium text-[#3B2B23] max-w-3xl mx-auto leading-relaxed tracking-wide">
+              Ilumina tus momentos con diseño, calma y tu aroma favorito
+            </h2>
+          </div>
 
           <div className="max-w-md mx-auto relative pt-4">
             <Search className="w-4 h-4 text-[#7A685F] absolute left-3.5 top-7" />
@@ -999,17 +1077,22 @@ export default function TiendaEterniaPage() {
 
       <main className="max-w-7xl mx-auto w-full flex-1 px-4 sm:px-8 py-10 space-y-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {productosFiltrados.map((prod: ProductoVela) => {
+          {productosFiltrados.map((prod: ProductoVela, idx: number) => {
             const admiteAroma = productoLlevaAroma(prod);
             const aromaActual = obtenerAromaDeProducto(prod);
             const claveActual = `${prod.id}__${aromaActual}`;
             const itemEnCarrito = carrito.find((i) => i.clave === claveActual);
             const cantActual = itemEnCarrito ? itemEnCarrito.cantidad : 0;
             const esCajaDeseos = esProductoCajaDeseos(prod);
+            // Retraso escalonado por fila: 0ms, 120ms, 240ms (máximo 240ms en total)
+            const delayEscalonado = (idx % 3) * 120;
 
             return (
               <div
                 key={prod.id}
+                data-reveal-id={`card-${prod.id}`}
+                data-reveal-delay={String(delayEscalonado)}
+                style={{ ["--reveal-delay" as string]: `${delayEscalonado}ms` }}
                 className={`eternia-card ${
                   esCajaDeseos ? "eternia-card-deseos border-[#C89D7C]/70" : "border-[#E8D5CE]"
                 } bg-white rounded-2xl border p-6 flex flex-col justify-between group`}
@@ -1099,8 +1182,12 @@ export default function TiendaEterniaPage() {
           })}
         </div>
 
-        {/* SECCIÓN CLUB ETERNIA (MEMBRESÍA PAGO COMPLETO SIN 50% DE ANTICIPO) */}
-        <div className="bg-[#3B2B23] text-[#FAF6F0] rounded-3xl p-6 sm:p-10 border border-[#C89D7C] shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6">
+        {/* SECCIÓN CLUB ETERNIA (CON REVEAL SUAVE AL HACER SCROLL) */}
+        <div
+          data-reveal-id="seccion-club-eternia"
+          data-reveal-delay="0"
+          className="bg-[#3B2B23] text-[#FAF6F0] rounded-3xl p-6 sm:p-10 border border-[#C89D7C] shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6"
+        >
           <div className="space-y-3 max-w-2xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C89D7C] text-white text-[11px] font-bold tracking-widest uppercase">
               <Crown className="w-3.5 h-3.5" /> Membresía Exclusiva • La Vela del Mes
@@ -1144,7 +1231,7 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      {/* DRAWER DEL CARRITO */}
+      {/* DRAWER DEL CARRITO (NO SE ANIMA CON SCROLL) */}
       {carritoAbierto && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end">
           <div className="bg-[#FAF6F0] w-full max-w-md h-full flex flex-col shadow-2xl border-l border-[#E8D5CE]">
