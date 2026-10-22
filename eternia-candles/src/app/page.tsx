@@ -24,7 +24,8 @@ import {
   ChevronLeft,
   PackageCheck,
   Crown,
-  AlertTriangle,
+  Flower2,
+  Gem,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import {
@@ -51,25 +52,6 @@ interface ItemCarritoConAroma {
   aroma: string;
 }
 
-const PEDIDO_MINIMO_COP = 15000;
-
-const PRODUCTO_CLUB_ETERNIA: ProductoVela = {
-  id: "club-eternia-mes",
-  nombre: "Caja Club Eternia — La Vela del Mes (Edición Coleccionable)",
-  categoria: "TODA OCASIÓN",
-  cant_velas: 4,
-  cera_g: 260,
-  fragancia_ml: 26,
-  pabilo_cm: 35,
-  tipo_empaque: "Caja Boutique Club Eternia",
-  costo_produccion: 28000,
-  precio_justo: 70000,
-  precio_catalogo: 70000,
-  descripcion:
-    "Incluye: 1 Vela de Vaso Principal + Mini Combo de Moldes Pequeños + Wax Melts + Caja de Cerillas Eternia + Sachet Perfumado + Tarjeta Coleccionable Ilustrada del Mes.",
-  activo_en_tienda: true,
-};
-
 const AROMAS_DEFAULT_TIENDA: AromaTiendaItem[] = [
   { id: "vainilla", nombre: "Vainilla Francesa", notas: "Dulce, cálida y acogedora", disponible: true },
   { id: "frutos-rojos", nombre: "Frutos Rojos & Moras", notas: "Vibrante, frutal y envolvente", disponible: true },
@@ -92,42 +74,42 @@ const CATEGORIAS = [
 ];
 
 const ETAPAS_MAPA = [
-  { id: "Pendiente Anticipo", titulo: "1. Orden Agendada", sub: "Esperando validación del 50% de anticipo", icono: Clock },
+  { id: "Pendiente Anticipo", titulo: "1. Orden Agendada", sub: "Esperando validación del anticipo", icono: Clock },
   { id: "En Producción (Abono 50%)", titulo: "2. Preparación de Moldes", sub: "Selección de pabilo de algodón y alistamiento artesanal", icono: Sparkles },
-  { id: "Fundición y Vertido", titulo: "3. Fundición y Esencias", sub: "Vertido de cera vegetal a temperatura controlada y notas olfativas", icono: Flame },
+  { id: "Fundición y Vertido", titulo: "3. Fundición y Esencias", sub: "Vertido de cera vegetal a temperatura controlada", icono: Flame },
   { id: "Curado y Acabado", titulo: "4. Reposo y Acabado", sub: "Curado térmico para fijar el aroma y pulido de detalles", icono: Heart },
   { id: "Listo para Entrega", titulo: "5. Empacado Boutique", sub: "¡Tu pedido está listo con su presentación y tarjeta!", icono: PackageCheck },
 ];
 
 const SLIDES_CUIDADO = [
   {
-    badge: "CAPÍTULO I • LA MEMORIA DE LA CERA",
+    badge: "CAPÍTULO 1 DE 3 • LA MEMORIA DE LA CERA",
     titulo: "El Primer Encendido lo Define Todo",
     descripcion:
-      "La cera vegetal natural tiene memoria térmica. La primera vez que enciendas tu vela Eternia, déjala arder entre 2 y 3 horas continuas hasta que la cera derretida alcance los bordes del recipiente o molde.",
+      "La cera vegetal natural tiene memoria térmica. La primera vez que enciendas tu vela Eternia, déjala arder entre 2 y 3 horas continuas hasta que la cera derretida alcance los bordes del recipiente.",
     Comparativa: {
       malo: "Encendido de 20 min ➔ Crea túnel central y desperdicia cera.",
       bueno: "Encendido de 2 a 3 horas ➔ Piscina uniforme y aroma envolvente.",
     },
   },
   {
-    badge: "CAPÍTULO II • EL ARTE DEL PABILO",
+    badge: "CAPÍTULO 2 DE 3 • EL ARTE DEL PABILO",
     titulo: "Corte Preciso a 5 Milímetros",
     descripcion:
       "Antes de cada encendido, recorta la punta quemada del pabilo de algodón dejando aproximadamente 5 mm de altura. Esto garantiza una llama serena, limpia y sin humo negro.",
     Comparativa: {
-      malo: "Pabilo largo (>1 cm) ➔ Llama inquieta, humo y consumo acelerado.",
+      malo: "Pabilo largo (>1 cm) ➔ Llama inquieta, humo negro y consumo acelerado.",
       bueno: "Pabilo a 5 mm ➔ Llama cálida, combustión lenta y máxima duración.",
     },
   },
   {
-    badge: "CAPÍTULO III • CORAZÓN DE YESO Y CEMENTO",
+    badge: "CAPÍTULO 3 DE 3 • CORAZÓN DE YESO Y CEMENTO",
     titulo: "Segunda Vida para tus Vasijas Artesanales",
     descripcion:
-      "Nuestras vasijas son fundidas a mano con una mezcla exacta de yeso y cemento blanco. Cuando tu vela termine su ciclo, limpia el interior con agua tibia y dale una nueva vida.",
+      "Nuestras vasijas son fundidas a mano con una mezcla exacta de yeso y cemento blanco. Cuando tu vela termine su ciclo, limpia el interior con agua tibia y dale una nueva vida en tu hogar.",
     Comparativa: {
       malo: "Desechar el envase ➔ Pierdes una pieza única hecha a mano.",
-      bueno: "Reutilizar como maceta o joyero ➔ Decoración eterna en tu hogar.",
+      bueno: "Reutilizar como maceta, joyero o porta-incienso ➔ Decoración eterna.",
     },
   },
 ];
@@ -139,125 +121,84 @@ function productoLlevaAroma(prod: ProductoVela): boolean {
   return true;
 }
 
-// ============================================================================
-// COMPONENTE: GATICO CRIOLLO CHIBI (NARANJA Y BLANCO) COLGANDO CON ANIMACIÓN
-// ============================================================================
-function GaticoCriolloColgante({ asustado }: { asustado: boolean }) {
+// 1. Gatico Chibi Trigueñito Gris con Blanco encima de la estrellita del Logo Eternia
+function GaticoGrisLogo({ activo }: { activo: boolean }) {
   return (
-    <div
-      className={`pointer-events-none select-none transition-transform duration-300 ${
-        asustado ? "-translate-y-3 scale-115" : "group-hover:-translate-y-1"
+    <svg
+      width="38"
+      height="28"
+      viewBox="0 0 64 46"
+      fill="none"
+      className={`transition-transform duration-300 ${
+        activo ? "-translate-y-1.5 rotate-6 scale-110" : "group-hover:-translate-y-1 group-hover:-rotate-3"
       }`}
     >
-      <svg width="54" height="42" viewBox="0 0 64 50" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
-        {/* Signo de sorpresa cuando se asusta al hacer clic */}
-        {asustado && (
-          <g className="animate-bounce">
-            <path d="M32 0 L32 7" stroke="#E67E22" strokeWidth="3" strokeLinecap="round" />
-            <circle cx="32" cy="11" r="1.8" fill="#E67E22" />
-            <path d="M18 3 L21 8" stroke="#C89D7C" strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M46 3 L43 8" stroke="#C89D7C" strokeWidth="2.2" strokeLinecap="round" />
-          </g>
-        )}
-
-        {/* Colita naranja y blanca asomada a la derecha */}
-        <path
-          d="M48 38 C56 35, 60 24, 54 18 C51 15, 48 20, 50 25"
-          stroke="#E67E22"
-          strokeWidth="5"
-          strokeLinecap="round"
-          fill="none"
-          className="origin-bottom-left animate-pulse"
-        />
-        <path d="M54 18 C52 16, 50 18, 50 20" stroke="#FFFFFF" strokeWidth="4.5" strokeLinecap="round" />
-
-        {/* Oreja Izquierda (Naranja criollo) */}
-        <path d="M15 24 L11 10 L24 17 Z" fill="#E67E22" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M15 21 L13 13 L21 17 Z" fill="#F5B7B1" />
-
-        {/* Oreja Derecha (Blanca con mancha naranja) */}
-        <path d="M49 24 L53 10 L40 17 Z" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M48 16 L53 10 L44 15 Z" fill="#D35400" />
-        <path d="M49 21 L51 13 L43 17 Z" fill="#F5B7B1" />
-
-        {/* Cabeza redonda Chibi (Blanca con parches naranjas atigrados) */}
-        <ellipse cx="32" cy="27" rx="18" ry="14" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2.2" />
-
-        {/* Parche Naranja en el lado izquierdo y frente */}
-        <path
-          d="M14 25 C14 17, 23 13, 31 14 C27 19, 23 24, 15 28 Z"
-          fill="#E67E22"
-        />
-        {/* Rayitas atigradas naranjas en la frente */}
-        <path d="M20 16 L24 19" stroke="#D35400" strokeWidth="2" strokeLinecap="round" />
-        <path d="M17 20 L21 22" stroke="#D35400" strokeWidth="2" strokeLinecap="round" />
-        <path d="M32 14 L32 18" stroke="#E67E22" strokeWidth="2.2" strokeLinecap="round" />
-
-        {/* Cachetes sonrojados cute */}
-        <ellipse cx="19" cy="30" rx="3" ry="1.8" fill="#F5B7B1" />
-        <ellipse cx="45" cy="30" rx="3" ry="1.8" fill="#F5B7B1" />
-
-        {/* Ojos: Si está asustado (> <), si está normal ojitos brillantes */}
-        {asustado ? (
-          <g stroke="#3B2B23" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 24 L26 27 L21 30" />
-            <path d="M43 24 L38 27 L43 30" />
-          </g>
-        ) : (
-          <g>
-            <circle cx="24" cy="26.5" r="2.8" fill="#3B2B23" />
-            <circle cx="23" cy="25.5" r="1" fill="#FFFFFF" />
-            <circle cx="40" cy="26.5" r="2.8" fill="#3B2B23" />
-            <circle cx="39" cy="25.5" r="1" fill="#FFFFFF" />
-          </g>
-        )}
-
-        {/* Naricita rosada y boquita :3 */}
-        <polygon points="30.5,29 33.5,29 32,31" fill="#E67E22" />
-        {asustado ? (
-          <circle cx="32" cy="33.5" r="2.2" fill="#922B21" />
-        ) : (
-          <path d="M29 32.5 Q30.5 34.5 32 32.5 Q33.5 34.5 35 32.5" stroke="#3B2B23" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-        )}
-
-        {/* Patitas blancas colgando del borde del botón */}
-        <ellipse
-          cx="21"
-          cy={asustado ? "38" : "42"}
-          rx="4.8"
-          ry="3.8"
-          fill="#FFFFFF"
-          stroke="#3B2B23"
-          strokeWidth="2"
-        />
-        <ellipse cx="21" cy={asustado ? "38" : "42"} rx="2" ry="1.3" fill="#F5B7B1" />
-
-        <ellipse
-          cx="43"
-          cy={asustado ? "38" : "42"}
-          rx="4.8"
-          ry="3.8"
-          fill="#FFFFFF"
-          stroke="#3B2B23"
-          strokeWidth="2"
-        />
-        <ellipse cx="43" cy={asustado ? "38" : "42"} rx="2" ry="1.3" fill="#F5B7B1" />
-      </svg>
-    </div>
+      {/* Orejitas grises con interior rosado */}
+      <path d="M15 22 L10 8 L24 15 Z" fill="#7F8C8D" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M15 19 L12 11 L21 15 Z" fill="#F5B7B1" />
+      <path d="M49 22 L54 8 L40 15 Z" fill="#7F8C8D" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M49 19 L52 11 L43 15 Z" fill="#F5B7B1" />
+      {/* Cabeza blanca con manto atigrado gris */}
+      <ellipse cx="32" cy="25" rx="17" ry="13" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2" />
+      <path d="M15 22 C16 14, 25 12, 32 12 C39 12, 48 14, 49 22 C42 18, 22 18, 15 22 Z" fill="#7F8C8D" />
+      {/* Rayitas trigueñas/atigradas en la frente */}
+      <path d="M32 12 L32 17 M27 13 L28 17 M37 13 L36 17" stroke="#4D5656" strokeWidth="1.8" strokeLinecap="round" />
+      {/* Mejillas y ojitos */}
+      <ellipse cx="20" cy="28" rx="2.8" ry="1.6" fill="#F5B7B1" />
+      <ellipse cx="44" cy="28" rx="2.8" ry="1.6" fill="#F5B7B1" />
+      {activo ? (
+        <>
+          <path d="M21 24 L26 25.5 L21 27" stroke="#3B2B23" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M43 24 L38 25.5 L43 27" stroke="#3B2B23" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      ) : (
+        <>
+          <circle cx="24" cy="25" r="2.3" fill="#3B2B23" />
+          <circle cx="40" cy="25" r="2.3" fill="#3B2B23" />
+        </>
+      )}
+      <polygon points="30.5,27.5 33.5,27.5 32,29.5" fill="#F1948A" />
+      <path d="M29 30.5 Q30.5 32.5 32 30.5 Q33.5 32.5 35 30.5" stroke="#3B2B23" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+      {/* Patitas blancas apoyadas sobre el círculo beige */}
+      <ellipse cx="22" cy="37" rx="4.5" ry="3" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="1.8" />
+      <ellipse cx="42" cy="37" rx="4.5" ry="3" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="1.8" />
+    </svg>
   );
 }
 
-// Sticker Chibi de Velita Feliz para estados y títulos
-function StickerVelitaChibi() {
+// 2. Gatico Chibi Naranja y Blanco colgando del botón de Mi Pedido
+function GaticoChibiCarrito({ asustado }: { asustado: boolean }) {
   return (
-    <svg width="28" height="32" viewBox="0 0 36 42" fill="none" className="inline-block shrink-0">
-      <path d="M18 2 C22 8, 23 13, 18 15 C13 13, 14 8, 18 2 Z" fill="#F59E0B" className="animate-pulse" />
-      <rect x="8" y="15" width="20" height="24" rx="6" fill="#FFFDF9" stroke="#C89D7C" strokeWidth="2" />
-      <circle cx="14" cy="26" r="1.8" fill="#3B2B23" />
-      <circle cx="22" cy="26" r="1.8" fill="#3B2B23" />
-      <ellipse cx="11.5" cy="28.5" rx="2" ry="1.2" fill="#F5B7B1" />
-      <ellipse cx="24.5" cy="28.5" rx="2" ry="1.2" fill="#F5B7B1" />
-      <path d="M16 29 Q18 31 20 29" stroke="#3B2B23" strokeWidth="1.6" strokeLinecap="round" />
+    <svg
+      width="44"
+      height="34"
+      viewBox="0 0 64 50"
+      fill="none"
+      className={`transition-transform duration-300 ${asustado ? "-translate-y-2.5 scale-110" : "group-hover:-translate-y-1"}`}
+    >
+      <path d="M15 24 L11 10 L24 17 Z" fill="#E67E22" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M15 21 L13 13 L21 17 Z" fill="#F5B7B1" />
+      <path d="M49 24 L53 10 L40 17 Z" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M48 16 L53 10 L44 15 Z" fill="#D35400" />
+      <ellipse cx="32" cy="27" rx="17" ry="13" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2" />
+      <path d="M15 25 C15 17, 23 14, 31 14 C27 19, 23 24, 15 27 Z" fill="#E67E22" />
+      <ellipse cx="20" cy="30" rx="2.8" ry="1.6" fill="#F5B7B1" />
+      <ellipse cx="44" cy="30" rx="2.8" ry="1.6" fill="#F5B7B1" />
+      {asustado ? (
+        <>
+          <path d="M21 25 L26 27 L21 29" stroke="#3B2B23" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M43 25 L38 27 L43 29" stroke="#3B2B23" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      ) : (
+        <>
+          <circle cx="24" cy="26.5" r="2.4" fill="#3B2B23" />
+          <circle cx="40" cy="26.5" r="2.4" fill="#3B2B23" />
+        </>
+      )}
+      <polygon points="30.5,29 33.5,29 32,31" fill="#E67E22" />
+      <path d="M29 32 Q30.5 34 32 32 Q33.5 34 35 32" stroke="#3B2B23" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+      <ellipse cx="21" cy="39" rx="4.5" ry="3.2" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="1.8" />
+      <ellipse cx="43" cy="39" rx="4.5" ry="3.2" fill="#E67E22" stroke="#3B2B23" strokeWidth="1.8" />
     </svg>
   );
 }
@@ -272,21 +213,36 @@ export default function TiendaEterniaPage() {
   const [busqueda, setBusqueda] = useState<string>("");
   const [carrito, setCarrito] = useState<ItemCarritoConAroma[]>([]);
   const [carritoAbierto, setCarritoAbierto] = useState<boolean>(false);
-  const [gatoAsustado, setGatoAsustado] = useState<boolean>(false);
+  const [gaticoCarritoSaltando, setGaticoCarritoSaltando] = useState<boolean>(false);
+  const [gaticoLogoMoviendo, setGaticoLogoMoviendo] = useState<boolean>(false);
 
+  // Modales
   const [modalMapaAbierto, setModalMapaAbierto] = useState<boolean>(false);
   const [modalCuidadoAbierto, setModalCuidadoAbierto] = useState<boolean>(false);
+  const [modalClubAbierto, setModalClubAbierto] = useState<boolean>(false);
 
+  // Mapa de Seguimiento
   const [codigoRastreoInput, setCodigoRastreoInput] = useState<string>("");
   const [pedidoRastreado, setPedidoRastreado] = useState<any | null>(null);
   const [buscandoRastreo, setBuscandoRastreo] = useState<boolean>(false);
   const [errorRastreo, setErrorRastreo] = useState<string | null>(null);
 
+  // Estados de los 3 Simuladores Interactivos del Cuidado de Velas
   const [slideActivo, setSlideActivo] = useState<number>(0);
   const [modoDemoEncendido, setModoDemoEncendido] = useState<"IDEAL" | "TUNEL">("IDEAL");
   const [horasPorDiaSim, setHorasPorDiaSim] = useState<number>(3);
   const [gramosCeraSim, setGramosCeraSim] = useState<number>(150);
+  const [pabiloCortado5mm, setPabiloCortado5mm] = useState<boolean>(false);
+  const [animandoTijera, setAnimandoTijera] = useState<boolean>(false);
+  const [usoVasija, setUsoVasija] = useState<"MACETA" | "JOYERO" | "INCIENSO" | "DESECHAR">("MACETA");
 
+  // Club Eternia (Pago 100% sin anticipo del 50%)
+  const [clubNombre, setClubNombre] = useState<string>("");
+  const [clubWhatsapp, setClubWhatsapp] = useState<string>("");
+  const [clubAromaPref, setClubAromaPref] = useState<string>("Dulces & Cálidos (Vainilla / Canela)");
+  const [clubMedioPago, setClubMedioPago] = useState<string>("Nequi");
+
+  // Checkout Carrito
   const [clienteNombre, setClienteNombre] = useState<string>("");
   const [clienteWhatsapp, setClienteWhatsapp] = useState<string>("");
   const [medioPagoPreferido, setMedioPagoPreferido] = useState<string>("Nequi");
@@ -299,31 +255,19 @@ export default function TiendaEterniaPage() {
   const [enviando, setEnviando] = useState<boolean>(false);
   const [pedidoConfirmado, setPedidoConfirmado] = useState<string | null>(null);
 
-  const abrirCarritoConGatico = () => {
-    setGatoAsustado(true);
-    setTimeout(() => {
-      setCarritoAbierto(true);
-    }, 220);
-    setTimeout(() => {
-      setGatoAsustado(false);
-    }, 900);
-  };
-
   useEffect(() => {
     async function inicializarTienda() {
       const guardadoLocal = localStorage.getItem("eternia_catalogo_v1");
       if (guardadoLocal) {
         try { setProductos(JSON.parse(guardadoLocal)); } catch (err) { console.error(err); }
       }
-
-      const ocultosLocal = localStorage.getItem("eternia_ocultos_v1");
-      if (ocultosLocal) {
-        try { setIdsOcultos(JSON.parse(ocultosLocal)); } catch (err) { console.error(err); }
-      }
-
       const aromasLocal = localStorage.getItem("eternia_aromas_v1");
       if (aromasLocal) {
         try { setAromasStock(JSON.parse(aromasLocal)); } catch (err) { console.error(err); }
+      }
+      const ocultosLocal = localStorage.getItem("eternia_ocultos_v1");
+      if (ocultosLocal) {
+        try { setIdsOcultos(JSON.parse(ocultosLocal)); } catch (err) { console.error(err); }
       }
 
       if (isSupabaseConfigured) {
@@ -338,33 +282,32 @@ export default function TiendaEterniaPage() {
           localStorage.setItem("eternia_catalogo_v1", JSON.stringify(data));
         }
 
-        const { data: cfgs } = await supabase
+        const { data: cfgRows } = await supabase
           .from("pedidos")
           .select("codigo, origen")
           .in("codigo", ["CFG-AROMAS", "CFG-OCULTOS"]);
 
-        if (cfgs && cfgs.length > 0) {
-          const filaAromas = cfgs.find((c: any) => c.codigo === "CFG-AROMAS");
-          if (filaAromas && filaAromas.origen) {
-            try {
-              const listaNube = JSON.parse(filaAromas.origen);
-              if (Array.isArray(listaNube) && listaNube.length > 0) {
-                setAromasStock(listaNube);
-                localStorage.setItem("eternia_aromas_v1", JSON.stringify(listaNube));
-              }
-            } catch (e) { console.error(e); }
-          }
-
-          const filaOcultos = cfgs.find((c: any) => c.codigo === "CFG-OCULTOS");
-          if (filaOcultos && filaOcultos.origen) {
-            try {
-              const listaOcultos = JSON.parse(filaOcultos.origen);
-              if (Array.isArray(listaOcultos)) {
-                setIdsOcultos(listaOcultos);
-                localStorage.setItem("eternia_ocultos_v1", JSON.stringify(listaOcultos));
-              }
-            } catch (e) { console.error(e); }
-          }
+        if (cfgRows && cfgRows.length > 0) {
+          cfgRows.forEach((row: any) => {
+            if (row.codigo === "CFG-AROMAS" && row.origen) {
+              try {
+                const listaNube = JSON.parse(row.origen);
+                if (Array.isArray(listaNube) && listaNube.length > 0) {
+                  setAromasStock(listaNube);
+                  localStorage.setItem("eternia_aromas_v1", JSON.stringify(listaNube));
+                }
+              } catch (e) { console.error(e); }
+            }
+            if (row.codigo === "CFG-OCULTOS" && row.origen) {
+              try {
+                const ocultosNube = JSON.parse(row.origen);
+                if (Array.isArray(ocultosNube)) {
+                  setIdsOcultos(ocultosNube);
+                  localStorage.setItem("eternia_ocultos_v1", JSON.stringify(ocultosNube));
+                }
+              } catch (e) { console.error(e); }
+            }
+          });
         }
       }
     }
@@ -393,11 +336,9 @@ export default function TiendaEterniaPage() {
     return primerAromaDisponible;
   };
 
-  // Filtra los productos ocultos desde el Admin (ej. momias o fantasmas sueltos)
   const productosFiltrados = useMemo(() => {
     return productos.filter((p: ProductoVela) => {
       if (p.precio_catalogo <= 0) return false;
-      if (p.activo_en_tienda === false) return false;
       if (idsOcultos.includes(p.id)) return false;
       const coincideCat = categoriaActiva === "TODAS" || p.categoria === categoriaActiva;
       const coincideBusq =
@@ -407,12 +348,12 @@ export default function TiendaEterniaPage() {
     });
   }, [productos, idsOcultos, categoriaActiva, busqueda]);
 
-  const agregarAlCarrito = (producto: ProductoVela, cant: number = 1, aromaForzado?: string) => {
-    const aromaFinal = aromaForzado || obtenerAromaDeProducto(producto);
+  const agregarAlCarrito = (producto: ProductoVela, cant: number = 1) => {
+    const aromaFinal = obtenerAromaDeProducto(producto);
     const clave = `${producto.id}__${aromaFinal}`;
 
-    setGatoAsustado(true);
-    setTimeout(() => setGatoAsustado(false), 650);
+    setGaticoCarritoSaltando(true);
+    setTimeout(() => setGaticoCarritoSaltando(false), 600);
 
     setCarrito((prev) => {
       const existe = prev.find((item) => item.clave === clave);
@@ -446,15 +387,13 @@ export default function TiendaEterniaPage() {
   };
 
   const totalUnidades = useMemo(() => carrito.reduce((acc, it) => acc + it.cantidad, 0), [carrito]);
-
   const valorTotalCarrito = useMemo(
     () => redondearCentena(carrito.reduce((acc, it) => acc + it.producto.precio_catalogo * it.cantidad, 0)),
     [carrito]
   );
-
   const abono50Carrito = useMemo(() => redondearCentena(valorTotalCarrito * 0.5), [valorTotalCarrito]);
   const fechaEntregaEstimada = useMemo(() => calcularFechaEntregaHabil(undefined, 5), []);
-  const cumpleMinimoPedido = valorTotalCarrito >= PEDIDO_MINIMO_COP;
+  const cumpleMinimoPedido = valorTotalCarrito >= 15000;
 
   const consultarSeguimientoPedido = async (e?: React.FormEvent, codigoDirecto?: string) => {
     if (e) e.preventDefault();
@@ -473,7 +412,7 @@ export default function TiendaEterniaPage() {
           .ilike("codigo", codigoLimpio)
           .maybeSingle();
 
-        if (!error && data && !String(data.codigo).startsWith("CFG-")) {
+        if (!error && data && !String(data.codigo || "").startsWith("CFG-")) {
           setPedidoRastreado(data);
           setBuscandoRastreo(false);
           return;
@@ -488,13 +427,104 @@ export default function TiendaEterniaPage() {
     }
   };
 
+  // Suscripción Club Eternia (Pago Completo 100% de una vez: $70.000 COP)
+  const suscribirClubEternia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clubNombre.trim() || !clubWhatsapp.trim()) return;
+
+    setEnviando(true);
+    try {
+      let nuevoNumero = 1;
+      if (isSupabaseConfigured) {
+        const { data: listaCodigos } = await supabase.from("pedidos").select("codigo");
+        if (listaCodigos && listaCodigos.length > 0) {
+          const numeros = listaCodigos
+            .filter((p: { codigo?: string }) => !String(p.codigo || "").startsWith("CFG-"))
+            .map((p: { codigo?: string }) => {
+              const partes = String(p.codigo || "").split("-");
+              const num = parseInt(partes[1], 10);
+              return isNaN(num) ? 0 : num;
+            });
+          nuevoNumero = Math.max(0, ...numeros) + 1;
+        }
+      }
+      const codigoPedido = `PED-${String(nuevoNumero).padStart(3, "0")}`;
+      const hoyStr = new Date().toISOString().split("T")[0];
+      const itemClub: PedidoItemDetalle = {
+        producto_nombre: `Membresía Club Eternia — Caja del Mes (${clubAromaPref})`,
+        cantidad: 1,
+        precio_unitario: 70000,
+        costo_unitario: 28000,
+        cera_unitaria_g: 220,
+        fragancia_unitaria_ml: 22,
+        pabilo_unitario_cm: 18,
+        tipo_empaque: "Caja Coleccionable Club Eternia",
+        subtotal: 70000,
+      };
+
+      if (isSupabaseConfigured) {
+        const { data: pedInsertado } = await supabase
+          .from("pedidos")
+          .insert({
+            codigo: codigoPedido,
+            cliente_nombre: clubNombre.trim(),
+            cliente_whatsapp: clubWhatsapp.trim(),
+            aprobado: false,
+            descuento_pct: 0,
+            valor_total: 70000,
+            costo_total: 28000,
+            abono_50: 70000,
+            dinero_recibido: 0,
+            ganancia_libre: 42000,
+            cera_total_g: 220,
+            fragancia_total_ml: 22,
+            pabilo_total_cm: 18,
+            medio_pago: clubMedioPago,
+            estado: "Pendiente Anticipo",
+            origen: `Club Eternia || Empaque: Caja Coleccionable Club || ItemsJSON: ${JSON.stringify([itemClub])}`,
+            fecha_pedido: hoyStr,
+            fecha_entrega: fechaEntregaEstimada,
+          })
+          .select()
+          .single();
+
+        if (pedInsertado) {
+          await supabase.from("pedido_items").insert([
+            {
+              pedido_id: pedInsertado.id,
+              producto_nombre: itemClub.producto_nombre,
+              cantidad: 1,
+              precio_unitario: 70000,
+              costo_unitario: 28000,
+              cera_unitaria_g: 220,
+              fragancia_unitaria_ml: 22,
+              tipo_empaque: itemClub.tipo_empaque,
+              subtotal: 70000,
+            },
+          ]);
+        }
+      }
+
+      const textoWA =
+        `\u2728 *SUSCRIPCION CLUB ETERNIA (LA VELA DEL MES)* \u2728\n` +
+        `\uD83D\uDCCC *Codigo:* ${codigoPedido}\n` +
+        `\uD83D\uDC64 *Suscriptor:* ${clubNombre.trim()}\n` +
+        `\uD83C\uDF81 *Incluye:* 1 Vela en Vaso Exclusiva + Mini Combo de Moldes + Wax Melts + Cerillas Eternia + Tarjeta Coleccionable\n` +
+        `\uD83D\uDD6F *Familia Olfativa:* ${clubAromaPref}\n\n` +
+        `\uD83D\uDCB0 *Valor Total Membresia (Pago Unico):* ${formatoCOP(70000)}\n` +
+        `\uD83C\uDFE6 *Medio de Pago:* ${clubMedioPago}\n\n` +
+        `Hola! Quiero unirme al Club Eternia y adjunto el comprobante de mi membresia.`;
+
+      window.open(`https://api.whatsapp.com/send?phone=573132019146&text=${encodeURIComponent(textoWA)}`, "_blank");
+      setModalClubAbierto(false);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   const confirmarPedidoWhatsApp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (carrito.length === 0) return;
-    if (!cumpleMinimoPedido) {
-      alert(`El pedido mínimo de taller es de ${formatoCOP(PEDIDO_MINIMO_COP)}. Agrega otra velita o un combo para continuar.`);
-      return;
-    }
+    if (carrito.length === 0 || !cumpleMinimoPedido) return;
     if (!clienteNombre.trim() || !clienteWhatsapp.trim()) {
       alert("Por favor escribe tu nombre y tu número de WhatsApp para agendar tu pedido.");
       return;
@@ -611,7 +641,6 @@ export default function TiendaEterniaPage() {
               subtotal: item.subtotal,
             }))
           );
-
           if (errItems1) {
             await supabase.from("pedido_items").insert(
               nuevoPedido.items.map((item: PedidoItemDetalle) => ({
@@ -627,44 +656,29 @@ export default function TiendaEterniaPage() {
               }))
             );
           }
-        } else {
-          alert(`Hubo un problema al registrar el pedido en la nube: ${errPed?.message || "Intenta de nuevo"}`);
-          return;
         }
       }
 
-      // Emojis 100% compatibles en formato Unicode Escape para que WhatsApp jamás muestre rombos ()
-      const E_BRILLO = "\u2728"; // ✨
-      const E_GATO = "\uD83D\uDC31"; // 🐱
-      const E_PIN = "\uD83D\uDCCC"; // 📌
-      const E_USER = "\uD83D\uDC64"; // 👤
-      const E_REGALO = "\uD83C\uDF81"; // 🎁
-      const E_CARTA = "\uD83D\uDC8C"; // 💌
-      const E_ESTRELLA = "\u2B50"; // ⭐
-      const E_DINERO = "\uD83D\uDCB0"; // 💰
-      const E_CHECK = "\u2705"; // ✅
-      const E_CALENDARIO = "\uD83D\uDCC5"; // 📅
-
       const lineasProductos = nuevoPedido.items
-        .map((it) => `${E_ESTRELLA} ${it.cantidad}x ${it.producto_nombre} (${formatoCOP(it.subtotal)})`)
+        .map((it) => `\u2022 ${it.cantidad}x ${it.producto_nombre} (${formatoCOP(it.subtotal)})`)
         .join("\n");
 
       const bloqueDedicatoriaWA =
         incluirDedicatoria && dedicatoriaMensaje.trim()
-          ? `\n${E_CARTA} *Tarjeta Dedicatoria:*\nPara: ${dedicatoriaPara || "Especial"} | De: ${dedicatoriaDe || clienteNombre}\n"${dedicatoriaMensaje.trim()}"\n`
+          ? `\n\uD83D\uDC8C *Tarjeta Dedicatoria:*\nPara: ${dedicatoriaPara || "Especial"} | De: ${dedicatoriaDe || clienteNombre}\n"${dedicatoriaMensaje.trim()}"\n`
           : "";
 
       const textoWA =
-        `${E_BRILLO} *NUEVO PEDIDO ETERNIA CANDLES* ${E_GATO}\n\n` +
-        `${E_PIN} *Codigo de Seguimiento:* ${codigoPedido}\n` +
-        `${E_USER} *Cliente:* ${clienteNombre.trim()}\n` +
-        `${E_REGALO} *Empaque:* ${empaqueElegido}\n` +
+        `\u2728 *NUEVO PEDIDO ETERNIA CANDLES* \u2728\n` +
+        `\uD83D\uDCCC *Codigo de Seguimiento:* ${codigoPedido}\n` +
+        `\uD83D\uDC64 *Cliente:* ${clienteNombre.trim()}\n` +
+        `\uD83C\uDF81 *Empaque:* ${empaqueElegido}\n` +
         `${bloqueDedicatoriaWA}\n` +
-        `*Productos Solicitados:*\n${lineasProductos}\n\n` +
-        `${E_DINERO} *Valor Total:* ${formatoCOP(valorTotalCarrito)}\n` +
-        `${E_CHECK} *Anticipo 50% (Para iniciar):* ${formatoCOP(abono50Carrito)}\n` +
-        `*Medio de Pago:* ${medioPagoPreferido}\n` +
-        `${E_CALENDARIO} *Entrega estimada:* ${fechaEntregaEstimada}\n\n` +
+        `\uD83D\uDD6F *Detalle del Pedido:*\n${lineasProductos}\n\n` +
+        `\uD83D\uDCB0 *Valor Total:* ${formatoCOP(valorTotalCarrito)}\n` +
+        `\u2705 *Anticipo 50% (Para iniciar):* ${formatoCOP(abono50Carrito)}\n` +
+        `\uD83C\uDFE6 *Medio de Pago:* ${medioPagoPreferido}\n` +
+        `\uD83D\uDCC5 *Entrega estimada:* ${fechaEntregaEstimada}\n\n` +
         `Hola! Adjunto el comprobante del 50% de anticipo para agendar mi pedido.`;
 
       const urlWA = `https://api.whatsapp.com/send?phone=573132019146&text=${encodeURIComponent(textoWA)}`;
@@ -684,32 +698,58 @@ export default function TiendaEterniaPage() {
     return { horasTotales, diasDuracion };
   }, [gramosCeraSim, horasPorDiaSim]);
 
+  const ejecutarCortePabiloInteractivo = () => {
+    setAnimandoTijera(true);
+    setTimeout(() => {
+      setPabiloCortado5mm((prev) => !prev);
+      setAnimandoTijera(false);
+    }, 350);
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#3B2B23] flex flex-col font-sans">
       <div className="bg-[#3B2B23] text-[#FAF6F0] text-xs sm:text-sm py-2 px-4 text-center font-medium tracking-wide">
-        ✨ Taller Eternia Bogotá • Velas artesanales con esencia natural • Pedido mínimo {formatoCOP(PEDIDO_MINIMO_COP)} • Agendamos con el 50%
+        ✨ Velas artesanales hechas con amor y esencia natural • Personaliza tu aroma y tarjeta de regalo • Pedido mínimo $15.000
       </div>
 
-      {/* CABECERA CON EL GATICO CRIOLLO COLGANDO DEL BOTÓN MI PEDIDO */}
-      <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur-md border-b border-[#E8D5CE] px-4 sm:px-8 pt-6 pb-3.5">
+      {/* CABECERA CON EL GATICO TRIGUEÑO GRIS Y BLANCO ENCIMA DE LA ESTRELLITA DEL LOGO */}
+      <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur-md border-b border-[#E8D5CE] px-4 sm:px-8 pt-6 pb-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shadow-sm">
-              <Sparkles className="w-5 h-5" />
+          <div
+            onClick={() => {
+              setGaticoLogoMoviendo(true);
+              setTimeout(() => setGaticoLogoMoviendo(false), 700);
+            }}
+            className="flex items-center gap-3 group cursor-pointer select-none"
+            title="¡Haz clic o pasa el mouse para saludar al gatico!"
+          >
+            <div className="relative">
+              {/* Gatico Trigueño Gris con Blanco encima del círculo beige */}
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+                <GaticoGrisLogo activo={gaticoLogoMoviendo} />
+              </div>
+              <div className="w-10 h-10 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shadow-sm">
+                <Sparkles className="w-5 h-5" />
+              </div>
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-serif tracking-widest font-bold text-[#3B2B23] flex items-center gap-2">
-                <span>ETERNIA CANDLES</span>
-                <StickerVelitaChibi />
-              </h1>
-              <p className="text-xs text-[#7A685F] italic tracking-wider font-serif">Handmade Aromas • Boutique & Cute Art</p>
+              <h1 className="text-xl sm:text-2xl font-serif tracking-widest font-bold text-[#3B2B23]">ETERNIA CANDLES</h1>
+              <p className="text-xs text-[#7A685F] italic tracking-wider font-serif">Handmade Aromas</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <button
+              onClick={() => setModalClubAbierto(true)}
+              className="bg-[#3B2B23] hover:bg-[#523d32] text-[#C89D7C] border border-[#C89D7C] px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+            >
+              <Crown className="w-4 h-4 text-[#C89D7C]" />
+              <span className="hidden sm:inline">Club Eternia</span>
+            </button>
+
+            <button
               onClick={() => setModalCuidadoAbierto(true)}
-              className="bg-white hover:bg-[#F3ECE1] text-[#3B2B23] border border-[#C89D7C] px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+              className="bg-white hover:bg-[#F3ECE1] text-[#3B2B23] border border-[#C89D7C] px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
             >
               <BookOpen className="w-4 h-4 text-[#C89D7C]" />
               <span>Ritual y Cuidado</span>
@@ -717,27 +757,29 @@ export default function TiendaEterniaPage() {
 
             <button
               onClick={() => setModalMapaAbierto(true)}
-              className="bg-[#F3ECE1] hover:bg-[#E8D5CE] text-[#3B2B23] border border-[#C89D7C] px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+              className="bg-[#F3ECE1] hover:bg-[#E8D5CE] text-[#3B2B23] border border-[#C89D7C] px-3 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
             >
-              <Compass className="w-4 h-4 text-[#C89D7C] animate-spin" style={{ animationDuration: "8s" }} />
-              <span>Rastrear Pedido</span>
+              <Compass className="w-4 h-4 text-[#C89D7C]" />
+              <span>Rastrear</span>
             </button>
 
-            {/* BOTÓN DE CARRITO CON EL GATICO CRIOLLO CHIBI COLGANDO */}
-            <div className="relative group pt-2">
-              <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20">
-                <GaticoCriolloColgante asustado={gatoAsustado} />
+            {/* BOTÓN MI PEDIDO CON EL GATICO NARANJA Y BLANCO COLGANDO */}
+            <div className="relative group pt-1">
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+                <GaticoChibiCarrito asustado={gaticoCarritoSaltando} />
               </div>
               <button
-                onClick={abrirCarritoConGatico}
-                className="relative z-10 bg-[#3B2B23] hover:bg-[#523d32] text-[#FAF6F0] px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-md transition cursor-pointer border border-[#C89D7C]"
+                onClick={() => {
+                  setGaticoCarritoSaltando(true);
+                  setTimeout(() => setGaticoCarritoSaltando(false), 600);
+                  setCarritoAbierto(true);
+                }}
+                className="relative bg-[#3B2B23] hover:bg-[#523d32] text-[#FAF6F0] px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4 text-[#C89D7C]" />
                 <span>Mi Pedido</span>
                 {totalUnidades > 0 && (
-                  <span className="bg-[#E67E22] text-white text-xs font-bold px-2 py-0.5 rounded-full animate-bounce">
-                    {totalUnidades}
-                  </span>
+                  <span className="bg-[#C89D7C] text-white text-xs font-bold px-2 py-0.5 rounded-full">{totalUnidades}</span>
                 )}
               </button>
             </div>
@@ -745,18 +787,17 @@ export default function TiendaEterniaPage() {
         </div>
       </header>
 
-      {/* HERO DE BIENVENIDA */}
-      <section className="bg-gradient-to-b from-[#F3ECE1] to-[#FAF6F0] pt-8 pb-8 px-4 sm:px-8 border-b border-[#E8D5CE]">
+      <section className="bg-gradient-to-b from-[#F3ECE1] to-[#FAF6F0] pt-10 pb-8 px-4 sm:px-8 border-b border-[#E8D5CE]">
         <div className="max-w-7xl mx-auto text-center space-y-4">
-          <span className="inline-flex items-center gap-1.5 bg-[#E8D5CE]/60 text-[#3B2B23] text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-widest font-serif">
-            <Sparkles className="w-3.5 h-3.5 text-[#C89D7C]" /> Catálogo Oficial • @eternia.candles
+          <span className="inline-block bg-[#E8D5CE]/60 text-[#3B2B23] text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-widest font-serif">
+            Catálogo Oficial • @eternia.candles
           </span>
           <h2 className="text-3xl sm:text-5xl font-serif font-medium text-[#3B2B23] max-w-3xl mx-auto leading-relaxed tracking-wide">
             Ilumina tus momentos con diseño, calma y tu aroma favorito
           </h2>
 
-          <div className="max-w-md mx-auto relative pt-3">
-            <Search className="w-4 h-4 text-[#7A685F] absolute left-3.5 top-6.5" />
+          <div className="max-w-md mx-auto relative pt-4">
+            <Search className="w-4 h-4 text-[#7A685F] absolute left-3.5 top-7" />
             <input
               type="text"
               value={busqueda}
@@ -766,7 +807,7 @@ export default function TiendaEterniaPage() {
             />
           </div>
 
-          <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pt-3 pb-1">
+          <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pt-4 pb-1">
             {CATEGORIAS.map((cat) => {
               const activa = categoriaActiva === cat;
               return (
@@ -785,64 +826,11 @@ export default function TiendaEterniaPage() {
         </div>
       </section>
 
-      {/* ================================================================= */}
-      {/* SECCIÓN EXCLUSIVA: CLUB ETERNIA — LA VELA DEL MES ($70.000 COP)   */}
-      {/* ================================================================= */}
-      <section className="max-w-7xl mx-auto w-full px-4 sm:px-8 pt-8">
-        <div className="bg-gradient-to-r from-[#3B2B23] via-[#4A352B] to-[#3B2B23] text-[#FAF6F0] rounded-3xl p-6 sm:p-8 border-2 border-[#C89D7C] shadow-xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative overflow-hidden">
-          <div className="lg:col-span-8 space-y-3">
-            <div className="inline-flex items-center gap-2 bg-[#C89D7C] text-[#3B2B23] text-[11px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full">
-              <Crown className="w-3.5 h-3.5" /> Membresía & Caja Sorpresa Mensual • Club Eternia
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-white">
-              Caja &ldquo;La Vela del Mes&rdquo; + Ticket Coleccionable Ilustrado
-            </h3>
-            <p className="text-xs sm:text-sm text-[#E8D5CE] leading-relaxed">
-              Recibe cada mes una experiencia sensorial irrepetible valorada en más de $95.000 por un precio especial de miembro:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#FAF6F0] pt-1">
-              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
-                🕯️ <strong>1 Vela de Vaso Principal</strong> con fragancia secreta exclusiva del mes.
-              </div>
-              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
-                ⛄ <strong>Mini Combo de Moldes Pequeños</strong> (Reno, Muñeco de Nieve, Estrella o Dúo).
-              </div>
-              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
-                🔥 <strong>Wax Melts + Cerillas Diseño Eternia</strong> o Sachet Perfumado para armario.
-              </div>
-              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
-                🎫 <strong>Tarjeta Coleccionable Cute</strong> (edición numerada estilo cine/Sanrio).
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-4 bg-[#FAF6F0] text-[#3B2B23] p-5 rounded-2xl border border-[#C89D7C] text-center space-y-3 shadow-lg">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#7A685F] block">
-              Edición Limitada del Mes
-            </span>
-            <div className="text-3xl font-extrabold font-serif text-[#3B2B23]">
-              {formatoCOP(PRODUCTO_CLUB_ETERNIA.precio_catalogo)}
-            </div>
-            <p className="text-[11px] text-[#7A685F]">
-              Agéndala con el 50% ({formatoCOP(35000)}) • Envío coordinado a tu medida
-            </p>
-            <button
-              onClick={() => agregarAlCarrito(PRODUCTO_CLUB_ETERNIA, 1, "Aroma Secreto del Mes")}
-              className="w-full bg-[#C89D7C] hover:bg-[#b58967] text-white font-bold py-3 px-5 rounded-xl text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" /> Quiero mi Caja Club Eternia
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* CATÁLOGO DE PRODUCTOS CON PÍLDORAS OLFATIVAS SENSORIALES */}
-      <main className="max-w-7xl mx-auto w-full flex-1 px-4 sm:px-8 py-10">
+      <main className="max-w-7xl mx-auto w-full flex-1 px-4 sm:px-8 py-10 space-y-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {productosFiltrados.map((prod: ProductoVela) => {
             const admiteAroma = productoLlevaAroma(prod);
             const aromaActual = obtenerAromaDeProducto(prod);
-            const infoAromaObj = aromasStock.find((a) => a.nombre === aromaActual);
             const claveActual = `${prod.id}__${aromaActual}`;
             const itemEnCarrito = carrito.find((i) => i.clave === claveActual);
             const cantActual = itemEnCarrito ? itemEnCarrito.cantidad : 0;
@@ -870,53 +858,31 @@ export default function TiendaEterniaPage() {
                     {prod.descripcion || `Presentación en ${prod.tipo_empaque}. Hecha a mano con cera vegetal.`}
                   </p>
 
-                  {/* SELECTOR OLFATIVO SENSORIAL CON PÍLDORAS */}
                   <div className="mt-4 pt-3 border-t border-[#FAF6F0]">
                     {admiteAroma ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold text-[#3B2B23] flex items-center gap-1">
-                            <Flame className="w-3.5 h-3.5 text-[#C89D7C]" /> Fragancia Elegida:
-                          </label>
-                          <span className="text-[10px] font-bold text-[#C89D7C]">{aromaActual}</span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1.5">
-                          {aromasStock.map((ar) => {
-                            const seleccionado = aromaActual === ar.nombre;
-                            return (
-                              <button
-                                key={ar.id}
-                                type="button"
-                                disabled={!ar.disponible}
-                                onClick={() =>
-                                  setAromaSeleccionadoPorProd((prev) => ({ ...prev, [prod.id]: ar.nombre }))
-                                }
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
-                                  !ar.disponible
-                                    ? "bg-gray-100 text-gray-400 line-through cursor-not-allowed border border-gray-200"
-                                    : seleccionado
-                                    ? "bg-[#3B2B23] text-[#FAF6F0] shadow-xs cursor-pointer"
-                                    : "bg-[#FAF6F0] text-[#3B2B23] hover:bg-[#F3ECE1] border border-[#E8D5CE] cursor-pointer"
-                                }`}
-                              >
-                                {ar.disponible ? ar.nombre : `${ar.nombre} (Agotado)`}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {infoAromaObj && (
-                          <p className="text-[10px] italic text-[#7A685F] bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#E8D5CE]/60">
-                            ✨ Notas: {infoAromaObj.notas}
-                          </p>
-                        )}
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#3B2B23] mb-1.5 flex items-center gap-1">
+                          <Flame className="w-3.5 h-3.5 text-[#C89D7C]" /> Elige el Aroma de tu Vela:
+                        </label>
+                        <select
+                          value={aromaActual}
+                          onChange={(e) =>
+                            setAromaSeleccionadoPorProd((prev) => ({ ...prev, [prod.id]: e.target.value }))
+                          }
+                          className="w-full px-3 py-2 rounded-xl bg-[#FAF6F0] border border-[#C89D7C] text-xs font-bold text-[#3B2B23] focus:outline-none"
+                        >
+                          {aromasStock.map((ar) => (
+                            <option key={ar.id} value={ar.nombre} disabled={!ar.disponible}>
+                              {ar.disponible ? `✨ ${ar.nombre} — ${ar.notas}` : `🚫 ${ar.nombre} (Agotado en Stock)`}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     ) : (
                       <div className="px-3 py-2 rounded-xl bg-[#F3ECE1]/70 border border-[#E8D5CE] text-[11px] text-[#7A685F] flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5 text-[#C89D7C] shrink-0" />
                         <span>
-                          <strong>Vela Ritual de un Día:</strong> Cera pura tradicional (sin fragancia).
+                          <strong>Vela Ritual de un Día:</strong> Elaborada en cera pura tradicional (no aplica fragancia).
                         </span>
                       </div>
                     )}
@@ -958,23 +924,43 @@ export default function TiendaEterniaPage() {
             );
           })}
         </div>
+
+        {/* SECCIÓN CLUB ETERNIA (MEMBRESÍA PAGO COMPLETO SIN 50% DE ANTICIPO) */}
+        <div className="bg-[#3B2B23] text-[#FAF6F0] rounded-3xl p-6 sm:p-10 border border-[#C89D7C] shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C89D7C] text-white text-[11px] font-bold tracking-widest uppercase">
+              <Crown className="w-3.5 h-3.5" /> Membresía Exclusiva • La Vela del Mes
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-white">
+              Club Eternia: Tu Caja Secreta de Aromas y Colección
+            </h3>
+            <p className="text-xs sm:text-sm text-[#E8D5CE] leading-relaxed">
+              Recibe cada mes una caja boutique con <strong>1 Vela en Vaso de aroma inédito</strong> + <strong>Mini Combo de Moldes Artesanales</strong> + <strong>Wax Melts</strong> + <strong>Cajita de Cerillas Eternia</strong> y una <strong>Tarjeta Ilustrada Coleccionable</strong>.
+            </p>
+          </div>
+          <div className="bg-[#FAF6F0] text-[#3B2B23] p-5 rounded-2xl border border-[#C89D7C] text-center space-y-2 shrink-0 w-full sm:w-auto">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#7A685F] block">Suscripción Mensual Total</span>
+            <span className="text-2xl font-serif font-extrabold text-[#3B2B23] block">{formatoCOP(70000)} / mes</span>
+            <span className="text-[11px] text-[#196F3D] font-bold block">✨ Pago único mensual (Valor real +$95.000)</span>
+            <button
+              onClick={() => setModalClubAbierto(true)}
+              className="w-full bg-[#C89D7C] hover:bg-[#b58967] text-white font-bold py-2.5 px-5 rounded-xl text-xs cursor-pointer transition tracking-wider"
+            >
+              Unirme al Club Eternia ➔
+            </button>
+          </div>
+        </div>
       </main>
 
-      {/* BARRA FLOTANTE INFERIOR CON EL GATICO CRIOLLO */}
       {totalUnidades > 0 && !carritoAbierto && (
-        <div className="fixed bottom-6 inset-x-4 z-40 max-w-lg mx-auto group">
-          <div className="absolute -top-6 left-8 z-20">
-            <GaticoCriolloColgante asustado={gatoAsustado} />
-          </div>
+        <div className="fixed bottom-6 inset-x-4 z-40 max-w-lg mx-auto">
           <button
-            onClick={abrirCarritoConGatico}
-            className="relative z-10 w-full bg-[#3B2B23] text-[#FAF6F0] py-4 px-6 rounded-2xl shadow-2xl flex items-center justify-between border-2 border-[#C89D7C] cursor-pointer"
+            onClick={() => setCarritoAbierto(true)}
+            className="w-full bg-[#3B2B23] text-[#FAF6F0] py-4 px-6 rounded-2xl shadow-2xl flex items-center justify-between border border-[#C89D7C] cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <span className="bg-[#E67E22] text-white text-xs font-extrabold px-3 py-1 rounded-full">
-                {totalUnidades}
-              </span>
-              <span className="font-bold text-sm tracking-wider">Ver mi pedido y agendar</span>
+              <span className="bg-[#C89D7C] text-white text-xs font-extrabold px-3 py-1 rounded-full">{totalUnidades}</span>
+              <span className="font-bold text-sm tracking-wider">Personalizar empaque y agendar</span>
             </div>
             <div className="text-right">
               <span className="text-sm font-extrabold text-[#C89D7C] block">Total: {formatoCOP(valorTotalCarrito)}</span>
@@ -984,16 +970,16 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      {/* DRAWER DEL CARRITO CON VALIDACIÓN DE PEDIDO MÍNIMO Y DEDICATORIA */}
+      {/* DRAWER DEL CARRITO */}
       {carritoAbierto && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end">
           <div className="bg-[#FAF6F0] w-full max-w-md h-full flex flex-col shadow-2xl border-l border-[#E8D5CE]">
             <div className="p-5 bg-[#F3ECE1] border-b border-[#E8D5CE] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <StickerVelitaChibi />
+                <Sparkles className="w-5 h-5 text-[#C89D7C]" />
                 <h3 className="font-bold text-lg font-serif text-[#3B2B23]">Tu Pedido en Eternia Candles</h3>
               </div>
-              <button onClick={() => setCarritoAbierto(false)} className="p-1.5 rounded-lg hover:bg-[#E8D5CE]/50 text-[#3B2B23] cursor-pointer">
+              <button onClick={() => setCarritoAbierto(false)} className="p-2 rounded-xl bg-white border border-[#E8D5CE] text-[#3B2B23] cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1001,12 +987,8 @@ export default function TiendaEterniaPage() {
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {carrito.length === 0 ? (
                 <div className="text-center py-12 space-y-3">
-                  <div className="flex justify-center">
-                    <GaticoCriolloColgante asustado={false} />
-                  </div>
-                  <p className="text-sm text-[#7A685F] pt-2">
-                    ¡Miau! Tu carrito está vacío. Elige tus velitas y aromas favoritos del catálogo.
-                  </p>
+                  <Sparkles className="w-10 h-10 text-[#C89D7C] mx-auto opacity-60" />
+                  <p className="text-sm text-[#7A685F]">Tu carrito está vacío. ¡Elige tus velas y aromas favoritos del catálogo!</p>
                 </div>
               ) : (
                 <>
@@ -1066,20 +1048,15 @@ export default function TiendaEterniaPage() {
                     );
                   })}
 
-                  {/* ALERTA DE PEDIDO MÍNIMO DE TALLER ($15.000 COP) */}
                   {!cumpleMinimoPedido && (
-                    <div className="p-3.5 rounded-2xl bg-[#FCF3CF] border border-[#E67E22] text-xs text-[#3B2B23] space-y-1">
-                      <div className="font-bold flex items-center gap-1.5 text-[#D35400]">
-                        <AlertTriangle className="w-4 h-4" /> Pedido mínimo de taller: {formatoCOP(PEDIDO_MINIMO_COP)}
-                      </div>
-                      <p className="text-[11px] text-[#7A685F]">
-                        Para poder fundir y preparar tu orden artesanalmente, te faltan{" "}
-                        <strong>{formatoCOP(PEDIDO_MINIMO_COP - valorTotalCarrito)}</strong>. ¡Agrega otra unidad o arma tu combo!
+                    <div className="p-3.5 rounded-xl bg-[#FCF3CF] border border-[#D35400]/30 text-xs text-[#3B2B23] space-y-1">
+                      <strong className="block text-[#D35400]">✨ Pedido Mínimo de Taller: {formatoCOP(15000)}</strong>
+                      <p>
+                        Te faltan <strong>{formatoCOP(15000 - valorTotalCarrito)}</strong> para completar el pedido mínimo artesanal. ¡Agrega otra velita o arma tu dúo!
                       </p>
                     </div>
                   )}
 
-                  {/* SELECTOR DE PRESENTACIÓN Y TARJETA DEDICATORIA */}
                   <div className="bg-white p-4 rounded-2xl border border-[#C89D7C] space-y-3 shadow-xs">
                     <div className="flex items-center gap-2 text-xs font-serif font-bold text-[#3B2B23]">
                       <Gift className="w-4 h-4 text-[#C89D7C]" />
@@ -1106,7 +1083,7 @@ export default function TiendaEterniaPage() {
                         onChange={(e) => setIncluirDedicatoria(e.target.checked)}
                         className="rounded accent-[#C89D7C] w-4 h-4"
                       />
-                      <span>💌 ¿Es para regalar? Añadir tarjeta dedicatoria ilustrada gratis</span>
+                      <span>💌 ¿Es para regalar? Añadir tarjeta dedicatoria gratis</span>
                     </label>
 
                     {incluirDedicatoria && (
@@ -1209,11 +1186,7 @@ export default function TiendaEterniaPage() {
                       className="w-full bg-[#C89D7C] hover:bg-[#b58967] disabled:opacity-50 text-white font-bold py-4 px-6 rounded-xl shadow-md flex items-center justify-center gap-2 transition text-sm cursor-pointer tracking-wider"
                     >
                       <Send className="w-4 h-4" />
-                      {enviando
-                        ? "Generando Pedido..."
-                        : !cumpleMinimoPedido
-                        ? `Mínimo de pedido: ${formatoCOP(PEDIDO_MINIMO_COP)}`
-                        : "Enviar Pedido por WhatsApp"}
+                      {enviando ? "Generando Pedido..." : "Enviar Pedido por WhatsApp"}
                     </button>
                   </form>
                 </>
@@ -1242,69 +1215,71 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      {/* MODAL MAPA DE SEGUIMIENTO */}
+      {/* ================================================================= */}
+      {/* MODAL 1: MAPA DE SEGUIMIENTO ADAPTADO A CELULAR (CABECERA FIJA)   */}
+      {/* ================================================================= */}
       {modalMapaAbierto && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#FAF6F0] max-w-2xl w-full rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden my-8">
-            <div className="bg-[#3B2B23] text-[#FAF6F0] p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#C89D7C] flex items-center justify-center text-white">
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-[#FAF6F0] max-w-2xl w-full max-h-[88vh] flex flex-col rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden">
+            {/* Cabecera fija con botón X siempre visible en celular */}
+            <div className="bg-[#3B2B23] text-[#FAF6F0] p-4 sm:p-5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shrink-0">
                   <Compass className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-serif font-bold tracking-wider">MAPA DE SEGUIMIENTO EN TIEMPO REAL</h3>
-                  <p className="text-xs text-[#E8D5CE]">Sigue cada etapa artesanal de tus velas desde el taller</p>
+                  <h3 className="text-sm sm:text-base font-serif font-bold tracking-wider">MAPA DE SEGUIMIENTO EN VIVO</h3>
+                  <p className="text-[11px] text-[#E8D5CE]">Sigue cada etapa artesanal de tus velas</p>
                 </div>
               </div>
-              <button onClick={() => setModalMapaAbierto(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white cursor-pointer">
+              <button
+                onClick={() => setModalMapaAbierto(false)}
+                className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white cursor-pointer shrink-0"
+                aria-label="Cerrar ventana"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
               <form onSubmit={(e) => consultarSeguimientoPedido(e)} className="flex gap-2">
                 <input
                   type="text"
                   value={codigoRastreoInput}
                   onChange={(e) => setCodigoRastreoInput(e.target.value)}
-                  placeholder="Ingresa tu código (ej. PED-001)"
-                  className="flex-1 px-4 py-3 rounded-xl bg-white border border-[#C89D7C] text-sm font-bold uppercase tracking-wider focus:outline-none"
+                  placeholder="Código (ej. PED-001)"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-[#C89D7C] text-xs sm:text-sm font-bold uppercase tracking-wider focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={buscandoRastreo}
-                  className="bg-[#C89D7C] hover:bg-[#b58967] text-white font-bold px-6 py-3 rounded-xl text-xs tracking-wider cursor-pointer transition"
+                  className="bg-[#C89D7C] hover:bg-[#b58967] text-white font-bold px-4 sm:px-6 py-2.5 rounded-xl text-xs tracking-wider cursor-pointer transition shrink-0"
                 >
-                  {buscandoRastreo ? "Buscando..." : "Rastrear Ahora"}
+                  {buscandoRastreo ? "..." : "Rastrear"}
                 </button>
               </form>
 
               {errorRastreo && (
-                <div className="p-4 rounded-xl bg-[#FADBD8] text-[#922B21] text-xs font-medium">{errorRastreo}</div>
+                <div className="p-3.5 rounded-xl bg-[#FADBD8] text-[#922B21] text-xs font-medium">{errorRastreo}</div>
               )}
 
               {pedidoRastreado && (() => {
-                const idxActual = Math.max(
-                  0,
-                  ETAPAS_MAPA.findIndex((e) => e.id === pedidoRastreado.estado)
-                );
+                const idxActual = Math.max(0, ETAPAS_MAPA.findIndex((e) => e.id === pedidoRastreado.estado));
                 const porcentajeBarra = Math.round(((idxActual + 1) / ETAPAS_MAPA.length) * 100);
 
                 return (
-                  <div className="space-y-6">
-                    <div className="bg-white p-4 rounded-2xl border border-[#E8D5CE] flex flex-wrap items-center justify-between gap-4">
+                  <div className="space-y-4">
+                    <div className="bg-white p-3.5 rounded-2xl border border-[#E8D5CE] flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[#C89D7C]">Orden Verificada</span>
-                        <h4 className="text-lg font-serif font-bold text-[#3B2B23]">
+                        <h4 className="text-base font-serif font-bold text-[#3B2B23]">
                           {pedidoRastreado.codigo} — {pedidoRastreado.cliente_nombre}
                         </h4>
                         <p className="text-xs text-[#7A685F]">Entrega estimada: <strong>{pedidoRastreado.fecha_entrega}</strong></p>
                       </div>
-                      <div className="text-right">
-                        <span className="px-3 py-1 rounded-full bg-[#F3ECE1] border border-[#C89D7C] text-xs font-bold text-[#3B2B23]">
-                          Avance: {porcentajeBarra}%
-                        </span>
-                      </div>
+                      <span className="px-3 py-1 rounded-full bg-[#F3ECE1] border border-[#C89D7C] text-xs font-bold text-[#3B2B23]">
+                        Avance: {porcentajeBarra}%
+                      </span>
                     </div>
 
                     <div className="w-full h-3 bg-[#E8D5CE] rounded-full overflow-hidden p-0.5">
@@ -1314,7 +1289,7 @@ export default function TiendaEterniaPage() {
                       />
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {ETAPAS_MAPA.map((etapa, index) => {
                         const IconoEtapa = etapa.icono;
                         const completada = index < idxActual;
@@ -1323,38 +1298,32 @@ export default function TiendaEterniaPage() {
                         return (
                           <div
                             key={etapa.id}
-                            className={`p-4 rounded-2xl border transition-all duration-500 flex items-center gap-4 ${
+                            className={`p-3.5 rounded-2xl border transition-all duration-500 flex items-center gap-3 ${
                               esActual
-                                ? "bg-white border-2 border-[#C89D7C] shadow-md scale-[1.01]"
+                                ? "bg-white border-2 border-[#C89D7C] shadow-md"
                                 : completada
                                 ? "bg-[#D4EFDF]/40 border-[#196F3D]/30"
                                 : "bg-white/50 border-[#E8D5CE] opacity-60"
                             }`}
                           >
                             <div
-                              className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                                esActual
-                                  ? "bg-[#C89D7C] text-white animate-bounce"
-                                  : completada
-                                  ? "bg-[#196F3D] text-white"
-                                  : "bg-[#F3ECE1] text-[#7A685F]"
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                                esActual ? "bg-[#C89D7C] text-white animate-bounce" : completada ? "bg-[#196F3D] text-white" : "bg-[#F3ECE1] text-[#7A685F]"
                               }`}
                             >
                               <IconoEtapa className="w-5 h-5" />
                             </div>
                             <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <h5 className="font-serif font-bold text-sm text-[#3B2B23]">{etapa.titulo}</h5>
+                              <div className="flex items-center justify-between gap-1">
+                                <h5 className="font-serif font-bold text-xs sm:text-sm text-[#3B2B23]">{etapa.titulo}</h5>
                                 {esActual && (
-                                  <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-[#C89D7C] text-white animate-pulse">
-                                    Etapa Actual
+                                  <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#C89D7C] text-white">
+                                    Actual
                                   </span>
                                 )}
-                                {completada && (
-                                  <span className="text-[10px] font-bold text-[#196F3D]">✓ Completado</span>
-                                )}
+                                {completada && <span className="text-[10px] font-bold text-[#196F3D]">✓</span>}
                               </div>
-                              <p className="text-xs text-[#7A685F] mt-0.5">{etapa.sub}</p>
+                              <p className="text-[11px] text-[#7A685F]">{etapa.sub}</p>
                             </div>
                           </div>
                         );
@@ -1368,32 +1337,41 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      {/* MODAL PRESENTACIÓN DE CUIDADO DE VELAS */}
+      {/* ================================================================= */}
+      {/* MODAL 2: RITUAL Y CUIDADO (3 SIMULADORES DISTINTOS + MÓVIL 100%)  */}
+      {/* ================================================================= */}
       {modalCuidadoAbierto && (
-        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#FAF6F0] max-w-3xl w-full rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden my-8">
-            <div className="bg-[#3B2B23] text-[#FAF6F0] p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#C89D7C] flex items-center justify-center text-white">
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-[#FAF6F0] max-w-3xl w-full max-h-[88vh] flex flex-col rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden">
+            {/* CABECERA FIJA CON BOTÓN X SIEMPRE ACCESIBLE EN CELULAR */}
+            <div className="bg-[#3B2B23] text-[#FAF6F0] p-4 sm:p-5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shrink-0">
                   <Flame className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-serif font-bold tracking-wider">EL ARTE DEL CUIDADO • EXPERIENCIA INTERACTIVA</h3>
-                  <p className="text-xs text-[#E8D5CE]">Guía maestra para prolongar la vida y el aroma de tus velas Eternia</p>
+                  <h3 className="text-sm sm:text-base font-serif font-bold tracking-wider">EL ARTE DEL CUIDADO • INTERACTIVO</h3>
+                  <p className="text-[11px] text-[#E8D5CE]">Capítulo {slideActivo + 1} de {SLIDES_CUIDADO.length}</p>
                 </div>
               </div>
-              <button onClick={() => setModalCuidadoAbierto(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-white cursor-pointer">
+              <button
+                onClick={() => setModalCuidadoAbierto(false)}
+                className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white cursor-pointer shrink-0"
+                aria-label="Cerrar ventana"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 sm:p-8 space-y-6">
-              <div className="flex items-center justify-between gap-2 border-b border-[#E8D5CE] pb-4">
-                {SLIDES_CUIDADO.map((sl, idx) => (
+            {/* CUERPO CON SCROLL SUAVE */}
+            <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
+              <div className="grid grid-cols-3 gap-2">
+                {SLIDES_CUIDADO.map((_sl, idx) => (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => setSlideActivo(idx)}
-                    className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold font-serif transition cursor-pointer ${
+                    className={`py-2 px-2 rounded-xl text-xs font-bold font-serif transition cursor-pointer ${
                       slideActivo === idx ? "bg-[#C89D7C] text-white shadow-sm" : "bg-white text-[#7A685F] border border-[#E8D5CE]"
                     }`}
                   >
@@ -1402,130 +1380,409 @@ export default function TiendaEterniaPage() {
                 ))}
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-[#E8D5CE] space-y-4 shadow-xs">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#E8D5CE] space-y-4 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C89D7C] block">
                   {SLIDES_CUIDADO[slideActivo].badge}
                 </span>
-                <h4 className="text-2xl font-serif font-bold text-[#3B2B23]">{SLIDES_CUIDADO[slideActivo].titulo}</h4>
-                <p className="text-sm text-[#7A685F] leading-relaxed">{SLIDES_CUIDADO[slideActivo].descripcion}</p>
+                <h4 className="text-lg sm:text-2xl font-serif font-bold text-[#3B2B23]">
+                  {SLIDES_CUIDADO[slideActivo].titulo}
+                </h4>
+                <p className="text-xs sm:text-sm text-[#7A685F] leading-relaxed">
+                  {SLIDES_CUIDADO[slideActivo].descripcion}
+                </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="p-3.5 rounded-xl bg-[#FADBD8]/40 border border-[#922B21]/20 text-xs text-[#922B21]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="p-3 rounded-xl bg-[#FADBD8]/40 border border-[#922B21]/20 text-xs text-[#922B21]">
                     <strong>❌ Evita esto:</strong>
-                    <p className="mt-1">{SLIDES_CUIDADO[slideActivo].Comparativa.malo}</p>
+                    <p className="mt-0.5">{SLIDES_CUIDADO[slideActivo].Comparativa.malo}</p>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[#D4EFDF]/50 border border-[#196F3D]/20 text-xs text-[#196F3D]">
+                  <div className="p-3 rounded-xl bg-[#D4EFDF]/50 border border-[#196F3D]/20 text-xs text-[#196F3D]">
                     <strong>✅ Ritual Eternia:</strong>
-                    <p className="mt-1">{SLIDES_CUIDADO[slideActivo].Comparativa.bueno}</p>
+                    <p className="mt-0.5">{SLIDES_CUIDADO[slideActivo].Comparativa.bueno}</p>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-[#F3ECE1] grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                  <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold font-serif">Simulador Visual de Quemado:</span>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => setModoDemoEncendido("IDEAL")}
-                          className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer ${
-                            modoDemoEncendido === "IDEAL" ? "bg-[#196F3D] text-white" : "bg-white border"
-                          }`}
-                        >
-                          Ideal (2-3h)
-                        </button>
-                        <button
-                          onClick={() => setModoDemoEncendido("TUNEL")}
-                          className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer ${
-                            modoDemoEncendido === "TUNEL" ? "bg-[#922B21] text-white" : "bg-white border"
-                          }`}
-                        >
-                          Efecto Túnel
-                        </button>
+                {/* ========================================================= */}
+                {/* SIMULADOR INTERACTIVO PASO 1: QUEMADO + CALCULADORA MÓVIL */}
+                {/* ========================================================= */}
+                {slideActivo === 0 && (
+                  <div className="pt-3 border-t border-[#F3ECE1] grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold font-serif">Simulador de Quemado:</span>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setModoDemoEncendido("IDEAL")}
+                            className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer ${
+                              modoDemoEncendido === "IDEAL" ? "bg-[#196F3D] text-white" : "bg-white border"
+                            }`}
+                          >
+                            Ideal (2-3h)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModoDemoEncendido("TUNEL")}
+                            className={`px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer ${
+                              modoDemoEncendido === "TUNEL" ? "bg-[#922B21] text-white" : "bg-white border"
+                            }`}
+                          >
+                            Efecto Túnel
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-col items-center py-3">
-                      <Flame
-                        className={`w-7 h-7 text-amber-500 animate-pulse ${
-                          modoDemoEncendido === "TUNEL" ? "scale-75 opacity-70" : "scale-110"
-                        }`}
-                      />
-                      <div className="w-1 h-2 bg-[#3B2B23]" />
-                      <div className="w-28 h-20 rounded-b-2xl border-2 border-[#C89D7C] bg-[#F3ECE1] relative overflow-hidden flex justify-center">
-                        <div
-                          className={`h-5 bg-amber-300/80 transition-all duration-700 ${
-                            modoDemoEncendido === "IDEAL" ? "w-full" : "w-10 rounded-b-full"
+                      <div className="flex flex-col items-center py-2">
+                        <Flame
+                          className={`w-7 h-7 text-amber-500 animate-pulse ${
+                            modoDemoEncendido === "TUNEL" ? "scale-75 opacity-70" : "scale-110"
                           }`}
                         />
+                        <div className="w-1 h-2 bg-[#3B2B23]" />
+                        <div className="w-28 h-20 rounded-b-2xl border-2 border-[#C89D7C] bg-[#F3ECE1] relative overflow-hidden flex justify-center">
+                          <div
+                            className={`h-5 bg-amber-300/80 transition-all duration-700 ${
+                              modoDemoEncendido === "IDEAL" ? "w-full" : "w-10 rounded-b-full"
+                            }`}
+                          />
+                        </div>
+                        <span className="text-[11px] text-[#7A685F] mt-2 text-center">
+                          {modoDemoEncendido === "IDEAL"
+                            ? "✨ Piscina uniforme de borde a borde."
+                            : "⚠️ Se hunde el centro y se pierde cera."}
+                        </span>
                       </div>
-                      <span className="text-[11px] text-[#7A685F] mt-2 text-center">
-                        {modoDemoEncendido === "IDEAL"
-                          ? "✨ La cera se funde de borde a borde liberando el 100% del aroma."
-                          : "⚠️ Se hunde solo el centro y se pierde la cera de las paredes."}
+                    </div>
+
+                    {/* CALCULADORA DE DURACIÓN CON BOTONES TÁCTILES + SLIDER PARA CELULAR */}
+                    <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
+                      <h5 className="text-xs font-serif font-bold text-[#3B2B23] flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-[#C89D7C]" /> Calculadora de Duración de tu Vela
+                      </h5>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span>Peso en cera: <strong>{gramosCeraSim}g</strong></span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setGramosCeraSim((g) => Math.max(50, g - 20))}
+                              className="w-7 h-7 rounded-lg bg-white border border-[#C89D7C] font-bold text-sm cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setGramosCeraSim((g) => Math.min(350, g + 20))}
+                              className="w-7 h-7 rounded-lg bg-[#C89D7C] text-white font-bold text-sm cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type="range"
+                          min={50}
+                          max={350}
+                          step={10}
+                          value={gramosCeraSim}
+                          onChange={(e) => setGramosCeraSim(Number(e.target.value))}
+                          onInput={(e) => setGramosCeraSim(Number((e.target as HTMLInputElement).value))}
+                          className="w-full accent-[#C89D7C] cursor-pointer"
+                        />
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span>Uso diario: <strong>{horasPorDiaSim} h / día</strong></span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setHorasPorDiaSim((h) => Math.max(1, h - 1))}
+                              className="w-7 h-7 rounded-lg bg-white border border-[#C89D7C] font-bold text-sm cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setHorasPorDiaSim((h) => Math.min(6, h + 1))}
+                              className="w-7 h-7 rounded-lg bg-[#C89D7C] text-white font-bold text-sm cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type="range"
+                          min={1}
+                          max={6}
+                          step={1}
+                          value={horasPorDiaSim}
+                          onChange={(e) => setHorasPorDiaSim(Number(e.target.value))}
+                          onInput={(e) => setHorasPorDiaSim(Number((e.target as HTMLInputElement).value))}
+                          className="w-full accent-[#C89D7C] cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-[#3B2B23] text-[#FAF6F0] text-center text-xs">
+                        Duración estimada: <strong>{calculoSimuladorDuracion.horasTotales} horas</strong> (
+                        <strong className="text-[#C89D7C]">{calculoSimuladorDuracion.diasDuracion} días</strong> de ritual).
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* SIMULADOR INTERACTIVO PASO 2: CORTE DE PABILO A 5 MM      */}
+                {/* ========================================================= */}
+                {slideActivo === 1 && (
+                  <div className="pt-3 border-t border-[#F3ECE1]">
+                    <div className="bg-[#FAF6F0] p-5 rounded-2xl border border-[#E8D5CE] flex flex-col sm:flex-row items-center justify-between gap-6">
+                      <div className="flex flex-col items-center justify-center min-w-[160px] py-2 relative">
+                        {!pabiloCortado5mm && (
+                          <div className="text-[10px] text-gray-500 font-bold animate-bounce mb-1">
+                            💨 Humo negro (Pabilo 12mm)
+                          </div>
+                        )}
+                        <Flame
+                          className={`transition-all duration-500 ${
+                            pabiloCortado5mm
+                              ? "w-7 h-7 text-amber-500 scale-100"
+                              : "w-10 h-10 text-orange-600 animate-ping"
+                          }`}
+                          style={{ animationDuration: pabiloCortado5mm ? "2s" : "0.6s" }}
+                        />
+                        <div className="relative flex items-center justify-center">
+                          <div
+                            className={`w-1.5 bg-[#3B2B23] transition-all duration-500 rounded-t ${
+                              pabiloCortado5mm ? "h-2.5" : "h-7"
+                            }`}
+                          />
+                          <Scissors
+                            className={`w-6 h-6 text-[#C89D7C] absolute -right-7 transition-transform duration-300 ${
+                              animandoTijera ? "-translate-x-5 rotate-45 scale-125" : ""
+                            }`}
+                          />
+                        </div>
+                        <div className="w-28 h-16 rounded-b-2xl border-2 border-[#C89D7C] bg-[#F3ECE1] flex items-center justify-center text-[11px] font-serif font-bold text-[#3B2B23]">
+                          {pabiloCortado5mm ? "Pabilo a 5 mm ✨" : "Pabilo largo 12 mm"}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 space-y-3 text-center sm:text-left">
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${pabiloCortado5mm ? "bg-[#D4EFDF] text-[#196F3D]" : "bg-[#FADBD8] text-[#922B21]"}`}>
+                          {pabiloCortado5mm
+                            ? "✅ Estado Actual: Pabilo recortado a 5 mm (Llama limpia y serena)"
+                            : "⚠️ Estado Actual: Pabilo sin cortar (Genera hollín y gasta más cera)"}
+                        </span>
+                        <p className="text-xs text-[#7A685F]">
+                          Haz clic en las tijeras para simular el recorte de 5 mm antes de encender tu vela:
+                        </p>
+                        <button
+                          type="button"
+                          onClick={ejecutarCortePabiloInteractivo}
+                          className="bg-[#3B2B23] hover:bg-[#523d32] text-white font-bold px-5 py-3 rounded-xl text-xs inline-flex items-center gap-2 cursor-pointer shadow-sm transition"
+                        >
+                          <Scissors className="w-4 h-4 text-[#C89D7C]" />
+                          {pabiloCortado5mm ? "Reiniciar Demostración (12 mm)" : "✂️ Cortar Pabilo a 5 mm Ahora"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* SIMULADOR INTERACTIVO PASO 3: SEGUNDA VIDA DE LA VASIJA   */}
+                {/* ========================================================= */}
+                {slideActivo === 2 && (
+                  <div className="pt-3 border-t border-[#F3ECE1]">
+                    <div className="bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-[#E8D5CE] space-y-4">
+                      <span className="text-xs font-serif font-bold text-[#3B2B23] block text-center">
+                        Toque Interactivo: ¿Qué harás cuando se termine la cera de tu vasija artesanal?
                       </span>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { id: "MACETA", label: "🌱 Maceta Suculenta" },
+                          { id: "JOYERO", label: "💍 Joyero Boutique" },
+                          { id: "INCIENSO", label: "🌸 Porta-Aromas" },
+                          { id: "DESECHAR", label: "❌ Desecharla" },
+                        ].map((op) => (
+                          <button
+                            key={op.id}
+                            type="button"
+                            onClick={() => setUsoVasija(op.id as typeof usoVasija)}
+                            className={`py-2.5 px-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                              usoVasija === op.id
+                                ? op.id === "DESECHAR"
+                                  ? "bg-[#922B21] text-white"
+                                  : "bg-[#196F3D] text-white shadow-sm"
+                                : "bg-white text-[#3B2B23] border border-[#E8D5CE]"
+                            }`}
+                          >
+                            {op.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-white border border-[#E8D5CE] flex flex-col sm:flex-row items-center gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-[#F3ECE1] border-2 border-[#C89D7C] flex items-center justify-center shrink-0">
+                          {usoVasija === "MACETA" && <Flower2 className="w-8 h-8 text-[#196F3D] animate-bounce" />}
+                          {usoVasija === "JOYERO" && <Gem className="w-8 h-8 text-[#C89D7C] animate-pulse" />}
+                          {usoVasija === "INCIENSO" && <Sparkles className="w-8 h-8 text-amber-600 animate-spin" style={{ animationDuration: "5s" }} />}
+                          {usoVasija === "DESECHAR" && <Trash2 className="w-8 h-8 text-[#922B21]" />}
+                        </div>
+                        <div className="text-xs space-y-1 text-center sm:text-left">
+                          {usoVasija === "MACETA" && (
+                            <>
+                              <strong className="text-[#196F3D] block">🌱 Ideal para Suculentas y Cactus</strong>
+                              <p className="text-[#7A685F]">El yeso y cemento blanco regulan la humedad de forma natural y lucen hermosos en tu escritorio.</p>
+                            </>
+                          )}
+                          {usoVasija === "JOYERO" && (
+                            <>
+                              <strong className="text-[#196F3D] block">💍 Joyero Minimalista en tu Mesa de Noche</strong>
+                              <p className="text-[#7A685F]">Al lavar los restos de cera con agua tibia, queda un recipiente suave y elegante para guardar anillos y aretes.</p>
+                            </>
+                          )}
+                          {usoVasija === "INCIENSO" && (
+                            <>
+                              <strong className="text-[#196F3D] block">🌸 Porta-Incienso o Algodones</strong>
+                              <p className="text-[#7A685F]">Su resistencia térmica te permite usarla con conos de incienso, palo santo o para organizar tu tocador.</p>
+                            </>
+                          )}
+                          {usoVasija === "DESECHAR" && (
+                            <>
+                              <strong className="text-[#922B21] block">❌ ¡No la botes a la basura!</strong>
+                              <p className="text-[#7A685F]">Cada vasija de Eternia fue fundida y lijada a mano. ¡Límpiala con agua tibia y dale una segunda vida!</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
-                    <h5 className="text-xs font-serif font-bold text-[#3B2B23] flex items-center gap-1.5">
-                      <Scissors className="w-3.5 h-3.5 text-[#C89D7C]" /> Calculadora de Duración de tu Vela
-                    </h5>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span>Tamaño de la vela (cera):</span>
-                        <strong>{gramosCeraSim} gramos</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min={50}
-                        max={350}
-                        step={10}
-                        value={gramosCeraSim}
-                        onChange={(e) => setGramosCeraSim(Number(e.target.value))}
-                        className="w-full accent-[#C89D7C]"
-                      />
-                      <div className="flex justify-between">
-                        <span>Horas de uso al día:</span>
-                        <strong>{horasPorDiaSim} horas / día</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min={1}
-                        max={6}
-                        step={1}
-                        value={horasPorDiaSim}
-                        onChange={(e) => setHorasPorDiaSim(Number(e.target.value))}
-                        className="w-full accent-[#C89D7C]"
-                      />
-                    </div>
-                    <div className="p-2.5 rounded-lg bg-[#3B2B23] text-[#FAF6F0] text-center text-xs">
-                      Tu vela te acompañará aprox. <strong>{calculoSimuladorDuracion.horasTotales} horas</strong> (
-                      <strong className="text-[#C89D7C]">{calculoSimuladorDuracion.diasDuracion} días</strong> de ritual).
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setSlideActivo((prev) => Math.max(0, prev - 1))}
-                  disabled={slideActivo === 0}
-                  className="px-4 py-2 rounded-xl bg-white border border-[#E8D5CE] text-xs font-bold disabled:opacity-40 flex items-center gap-1 cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" /> Anterior
-                </button>
-                <span className="text-xs font-serif text-[#7A685F]">
-                  Capítulo {slideActivo + 1} de {SLIDES_CUIDADO.length}
-                </span>
-                <button
-                  onClick={() => setSlideActivo((prev) => Math.min(SLIDES_CUIDADO.length - 1, prev + 1))}
-                  disabled={slideActivo === SLIDES_CUIDADO.length - 1}
-                  className="px-4 py-2 rounded-xl bg-[#3B2B23] text-white text-xs font-bold disabled:opacity-40 flex items-center gap-1 cursor-pointer"
-                >
-                  Siguiente <ChevronRight className="w-4 h-4" />
-                </button>
+                )}
               </div>
             </div>
+
+            {/* PIE DE PÁGINA FIJO PARA CAMBIAR DE CAPÍTULO EN CELULAR SIN PROBLEMAS */}
+            <div className="p-4 bg-[#F3ECE1] border-t border-[#E8D5CE] flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => setSlideActivo((prev) => Math.max(0, prev - 1))}
+                disabled={slideActivo === 0}
+                className="px-4 py-2.5 rounded-xl bg-white border border-[#E8D5CE] text-xs font-bold disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" /> Anterior
+              </button>
+              <span className="text-xs font-serif font-bold text-[#3B2B23]">
+                Capítulo {slideActivo + 1} de {SLIDES_CUIDADO.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSlideActivo((prev) => Math.min(SLIDES_CUIDADO.length - 1, prev + 1))}
+                disabled={slideActivo === SLIDES_CUIDADO.length - 1}
+                className="px-4 py-2.5 rounded-xl bg-[#3B2B23] text-white text-xs font-bold disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+              >
+                Siguiente <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================= */}
+      {/* MODAL 3: CLUB ETERNIA (PAGO ÚNICO COMPLETO SIN 50% DE ANTICIPO)   */}
+      {/* ================================================================= */}
+      {modalClubAbierto && (
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-[#FAF6F0] max-w-lg w-full max-h-[88vh] flex flex-col rounded-3xl border border-[#C89D7C] shadow-2xl overflow-hidden">
+            <div className="bg-[#3B2B23] text-[#FAF6F0] p-4 sm:p-5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shrink-0">
+                  <Crown className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-serif font-bold tracking-wider">CLUB ETERNIA • LA VELA DEL MES</h3>
+                  <p className="text-[11px] text-[#E8D5CE]">Suscripción mensual con pago completo de una vez</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalClubAbierto(false)}
+                className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={suscribirClubEternia} className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+              <div className="bg-white p-4 rounded-2xl border border-[#E8D5CE] space-y-2">
+                <div className="flex justify-between items-center font-serif font-bold text-sm text-[#3B2B23]">
+                  <span>Valor Total Membresía Mensual:</span>
+                  <span className="text-lg text-[#C89D7C]">{formatoCOP(70000)}</span>
+                </div>
+                <p className="text-[#7A685F]">
+                  Incluye: 1 Vela de Vaso exclusiva + Mini Combo de Moldes + Wax Melts + Cajita de Cerillas Eternia + Tarjeta Coleccionable del Mes. (Se cancela el 100% al inscribirse).
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Tu Nombre Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={clubNombre}
+                  onChange={(e) => setClubNombre(e.target.value)}
+                  placeholder="Ej: Valentina Prada"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E8D5CE] text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Tu WhatsApp *</label>
+                <input
+                  type="text"
+                  required
+                  value={clubWhatsapp}
+                  onChange={(e) => setClubWhatsapp(e.target.value)}
+                  placeholder="Ej: 310 000 0000"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E8D5CE] text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">¿Qué notas olfativas prefieres en tu caja?</label>
+                <select
+                  value={clubAromaPref}
+                  onChange={(e) => setClubAromaPref(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E8D5CE] text-xs font-bold"
+                >
+                  <option value="Dulces & Cálidos (Vainilla / Canela)">🍦 Dulces & Cálidos (Vainilla / Canela)</option>
+                  <option value="Frutales & Vibrantes (Frutos Rojos / Maracuyá)">🍓 Frutales & Vibrantes (Frutos Rojos / Maracuyá)</option>
+                  <option value="Botánicos & Frescos (Lavanda / Pino / Bambú)">🌿 Botánicos & Frescos (Lavanda / Pino / Bambú)</option>
+                  <option value="Sorpréndeme con la Creación del Mes">✨ Sorpréndeme con la Creación del Mes</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Medio de Pago (Pago único {formatoCOP(70000)})</label>
+                <select
+                  value={clubMedioPago}
+                  onChange={(e) => setClubMedioPago(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E8D5CE] text-xs font-bold"
+                >
+                  <option value="Nequi">Nequi (313 201 9146)</option>
+                  <option value="Bancolombia">Bancolombia Ahorros (22582959122)</option>
+                  <option value="Daviplata">Daviplata (313 201 9146)</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={enviando}
+                className="w-full bg-[#3B2B23] hover:bg-[#523d32] text-white font-bold py-3.5 rounded-xl text-xs tracking-wider cursor-pointer shadow-md"
+              >
+                {enviando ? "Registrando..." : `Suscribirme por ${formatoCOP(70000)} en WhatsApp`}
+              </button>
+            </form>
           </div>
         </div>
       )}

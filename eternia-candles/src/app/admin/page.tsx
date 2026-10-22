@@ -834,11 +834,12 @@ export default function AdminEterniaPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#3B2B23] font-sans">
+      {/* CABECERA CON ESTRELLITA BEIGE Y ÚNICAMENTE EL BOTÓN DE CERRAR SESIÓN */}
       <header className="no-print bg-[#3B2B23] text-[#FAF6F0] px-4 sm:px-8 py-4 shadow-md">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-[#C89D7C] flex items-center justify-center bg-white">
-              <img src="/logo-eternia.jpeg" alt="Eternia Candles Logo" className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shadow-sm">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-serif font-bold tracking-wider">ETERNIA CANDLES — PANEL ADMINISTRATIVO</h1>
@@ -847,10 +848,7 @@ export default function AdminEterniaPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/" className="bg-[#FAF6F0]/10 hover:bg-[#FAF6F0]/20 text-[#FAF6F0] text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
-              <ArrowLeft className="w-4 h-4" /> <span>Ver Tienda</span>
-            </Link>
-            <button onClick={cerrarSesionAdmin} className="bg-red-900/60 hover:bg-red-900 text-[#FAF6F0] text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition cursor-pointer">
+            <button onClick={cerrarSesionAdmin} className="bg-red-900/60 hover:bg-red-900 text-[#FAF6F0] text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer">
               <LogOut className="w-4 h-4 text-[#FADBD8]" /> <span>Cerrar Sesión</span>
             </button>
           </div>
@@ -883,7 +881,7 @@ export default function AdminEterniaPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 sm:p-8">
-        {/* PESTAÑA 1: COTIZADOR POS CON ALERTA DE RENTABILIDAD */}
+        {/* PESTAÑA 1: COTIZADOR POS */}
         {tabActiva === "POS" && (
           <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs space-y-5">
@@ -1522,7 +1520,6 @@ export default function AdminEterniaPage() {
         {/* PESTAÑA 6: AROMAS, VISIBILIDAD DE CATÁLOGO E INSUMOS */}
         {tabActiva === "INVENTARIO" && (
           <div className="no-print space-y-6">
-            {/* 1. STOCK DE AROMAS EN VIVO */}
             <div className="bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#F3ECE1] pb-3">
                 <div>
@@ -1587,7 +1584,6 @@ export default function AdminEterniaPage() {
               </div>
             </div>
 
-            {/* 2. INTERRUPTOR DE VISIBILIDAD DE VELAS EN LA TIENDA PÚBLICA */}
             <div className="bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs space-y-4">
               <div className="border-b border-[#F3ECE1] pb-3">
                 <h2 className="text-lg font-serif font-bold text-[#3B2B23] flex items-center gap-2">
@@ -1636,7 +1632,6 @@ export default function AdminEterniaPage() {
               </div>
             </div>
 
-            {/* 3. TABLA DE INSUMOS CON SEMÁFORO */}
             <div className="bg-white rounded-2xl border border-[#E8D5CE] overflow-x-auto shadow-xs">
               <div className="p-5 border-b border-[#F3ECE1]">
                 <h2 className="text-lg font-serif font-bold text-[#3B2B23]">3. Control de Insumos con Descuento Automático</h2>
