@@ -134,53 +134,64 @@ export default function AdminEterniaPage() {
   useEffect(() => {
     if (!sesionVerificada) return;
 
-    const pedLocalAdmin = localStorage.getItem("eternia_pedidos_v1");
-    if (pedLocalAdmin) {
-      try {
-        const parsed = JSON.parse(pedLocalAdmin);
-        setPedidos(parsed);
-        if (parsed.length > 0) setCodigoReciboSeleccionado(parsed[0].codigo);
-      } catch (e) { console.error(e); }
-    } else {
-      const p1 = CATALOGO_INICIAL_VELAS[0];
-      const hoy = new Date().toISOString().split("T")[0];
-      const demo: PedidoCompleto[] = [
-        {
-          id: "demo-1",
-          codigo: "PED-001",
-          cliente_nombre: "María Gómez",
-          cliente_whatsapp: "3100000000",
-          aprobado: true,
-          descuento_pct: 0,
-          valor_total: p1.precio_catalogo * 5,
-          costo_total: p1.costo_produccion * 5,
-          abono_50: redondearCentena(p1.precio_catalogo * 5 * 0.5),
-          dinero_recibido: redondearCentena(p1.precio_catalogo * 5 * 0.5),
-          ganancia_libre: (p1.precio_catalogo - p1.costo_produccion) * 5,
-          cera_total_g: p1.cera_g * 5,
-          fragancia_total_ml: p1.fragancia_ml * 5,
-          pabilo_total_cm: p1.pabilo_cm * 5,
-          medio_pago: "Nequi",
-          estado: "En Producción (Abono 50%)",
-          origen: "Admin POS",
-          fecha_pedido: hoy,
-          fecha_entrega: calcularFechaEntregaHabil(hoy, 5),
-          items: [{
-            producto_nombre: p1.nombre,
-            cantidad: 5,
-            precio_unitario: p1.precio_catalogo,
-            costo_unitario: p1.costo_produccion,
-            cera_unitaria_g: p1.cera_g,
-            fragancia_unitaria_ml: p1.fragancia_ml,
-            pabilo_unitario_cm: p1.pabilo_cm,
-            tipo_empaque: p1.tipo_empaque,
-            subtotal: p1.precio_catalogo * 5,
-          }],
-        },
-      ];
-      setPedidos(demo);
-      localStorage.setItem("eternia_pedidos_v1", JSON.stringify(demo));
+    async function cargarPedidosDesdeNube() {
+      if (isSupabaseConfigured) {
+        const { data: pedData, error } = await supabase
+          .from("pedidos")
+          .select("*, pedido_items(*)")
+          .order("fecha_pedido", { ascending: false });
+
+        if (!error && pedData && pedData.length > 0) {
+          const pedidosMapeados: PedidoCompleto[] = pedData.map((p: any) => ({
+            id: p.id,
+            codigo: p.codigo,
+            cliente_nombre: p.cliente_nombre,
+            cliente_whatsapp: p.cliente_whatsapp,
+            aprobado: p.aprobado,
+            descuento_pct: p.descuento_pct || 0,
+            valor_total: p.valor_total,
+            costo_total: p.costo_total,
+            abono_50: p.abono_50,
+            dinero_recibido: p.dinero_recibido || 0,
+            ganancia_libre: p.ganancia_libre,
+            cera_total_g: p.cera_total_g,
+            fragancia_total_ml: p.fragancia_total_ml,
+            pabilo_total_cm: p.pabilo_total_cm,
+            medio_pago: p.medio_pago,
+            estado: p.estado,
+            origen: p.origen,
+            fecha_pedido: p.fecha_pedido,
+            fecha_entrega: p.fecha_entrega,
+            items: (p.pedido_items || []).map((it: any) => ({
+              producto_nombre: it.producto_nombre,
+              cantidad: it.cantidad,
+              precio_unitario: it.precio_unitario,
+              costo_unitario: it.costo_unitario,
+              cera_unitaria_g: it.cera_unitaria_g,
+              fragancia_unitaria_ml: it.fragancia_unitaria_ml,
+              pabilo_unitario_cm: it.pabilo_unitaria_cm,
+              tipo_empaque: it.tipo_empaque,
+              subtotal: it.subtotal,
+            })),
+          }));
+          setPedidos(pedidosMapeados);
+          setCodigoReciboSeleccionado(pedidosMapeados[0].codigo);
+          return;
+        }
+      }
+
+      // Respaldo local si Supabase no está disponible
+      const pedLocalAdmin = localStorage.getItem("eternia_pedidos_v1");
+      if (pedLocalAdmin) {
+        try {
+          const parsed = JSON.parse(pedLocalAdmin);
+          setPedidos(parsed);
+          if (parsed.length > 0) setCodigoReciboSeleccionado(parsed[0].codigo);
+        } catch (e) { console.error(e); }
+      }
     }
+
+    cargarPedidosDesdeNube();
 
     const catLocal = localStorage.getItem("eternia_catalogo_v1");
     if (catLocal) {
