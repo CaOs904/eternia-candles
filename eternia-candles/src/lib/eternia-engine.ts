@@ -244,8 +244,8 @@ function crearItemSemilla(
 }
 
 export const CATALOGO_INICIAL_VELAS: ProductoVela[] = [
-  crearItemSemilla("v-1", "Caja Velas de Deseos x6", "DÍA DE LAS VELITAS", 6, 150, 84, "Caja Deseos", 18000, "6 velas aromatizadas con deseos (Salud, Amor, Prosperidad, Éxito, Paz, Familia) en caja de regalo."),
-  crearItemSemilla("v-2", "Caja Velas de Deseos x12", "DÍA DE LAS VELITAS", 12, 300, 168, "Caja Deseos", 30000, "12 velas de deseos en tonos pastel y aromas envolventes para encender el 7 de diciembre."),
+  crearItemSemilla("v-1", "Caja Velas de Deseos x6", "DÍA DE LAS VELITAS", 6, 150, 84, "Caja Deseos", 18000, "6 velas de deseos (Salud, Amor, Prosperidad, Éxito, Paz, Familia) en caja de regalo."),
+  crearItemSemilla("v-2", "Caja Velas de Deseos x12", "DÍA DE LAS VELITAS", 12, 300, 168, "Caja Deseos", 30000, "12 velas de deseos en tonos pastel para encender el 7 de diciembre."),
   crearItemSemilla("v-3", "Vela Arbolito de Navidad Grande", "NAVIDAD", 1, 156, 14, "Caja Molde", 17500, "Pino navideño texturizado de 156g con aroma cálido de temporada."),
   crearItemSemilla("v-4", "Vela Rudolf (Reno Navideño)", "NAVIDAD", 1, 140, 14, "Caja Molde", 15500, "Tierno reno navideño esculpido en cera de molde de alta pureza."),
   crearItemSemilla("v-5", "Vela Bota Navideña", "NAVIDAD", 1, 176, 12, "Caja Molde", 19000, "Bota navideña con relieves artesanales, ideal para centros de mesa o regalos."),

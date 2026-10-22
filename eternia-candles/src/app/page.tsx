@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   Send,
   Calendar,
-  ShieldCheck,
   X,
   Flame,
   Gift,
@@ -114,9 +113,26 @@ const SLIDES_CUIDADO = [
   },
 ];
 
+// Textos exactos oficiales para las Cajas de Velas de Deseos (x6 y x12)
+const TEXTO_CAJA_DESEOS_X6 = "6 velas de deseos (Salud, Amor, Prosperidad, Éxito, Paz, Familia) en caja de regalo.";
+const TEXTO_CAJA_DESEOS_X12 = "12 velas de deseos en tonos pastel para encender el 7 de diciembre.";
+
+function normalizarCatalogoDeseos(lista: ProductoVela[]): ProductoVela[] {
+  return lista.map((prod) => {
+    const n = (prod.nombre || "").toLowerCase();
+    if (prod.id === "v-1" || (n.includes("deseos") && n.includes("x6"))) {
+      return { ...prod, descripcion: TEXTO_CAJA_DESEOS_X6 };
+    }
+    if (prod.id === "v-2" || (n.includes("deseos") && n.includes("x12"))) {
+      return { ...prod, descripcion: TEXTO_CAJA_DESEOS_X12 };
+    }
+    return prod;
+  });
+}
+
 function productoLlevaAroma(prod: ProductoVela): boolean {
   const n = prod.nombre.toLowerCase();
-  if (n.includes("deseo") || n.includes("sin aroma")) return false;
+  if (prod.id === "v-1" || prod.id === "v-2" || n.includes("deseo") || n.includes("sin aroma")) return false;
   if (prod.fragancia_ml <= 0 && prod.cera_g <= 0) return false;
   return true;
 }
@@ -133,17 +149,13 @@ function GaticoGrisLogo({ activo }: { activo: boolean }) {
         activo ? "-translate-y-1.5 rotate-6 scale-110" : "group-hover:-translate-y-1 group-hover:-rotate-3"
       }`}
     >
-      {/* Orejitas grises con interior rosado */}
       <path d="M15 22 L10 8 L24 15 Z" fill="#7F8C8D" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
       <path d="M15 19 L12 11 L21 15 Z" fill="#F5B7B1" />
       <path d="M49 22 L54 8 L40 15 Z" fill="#7F8C8D" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
       <path d="M49 19 L52 11 L43 15 Z" fill="#F5B7B1" />
-      {/* Cabeza blanca con manto atigrado gris */}
       <ellipse cx="32" cy="25" rx="17" ry="13" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2" />
       <path d="M15 22 C16 14, 25 12, 32 12 C39 12, 48 14, 49 22 C42 18, 22 18, 15 22 Z" fill="#7F8C8D" />
-      {/* Rayitas trigueñas/atigradas en la frente */}
       <path d="M32 12 L32 17 M27 13 L28 17 M37 13 L36 17" stroke="#4D5656" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Mejillas y ojitos */}
       <ellipse cx="20" cy="28" rx="2.8" ry="1.6" fill="#F5B7B1" />
       <ellipse cx="44" cy="28" rx="2.8" ry="1.6" fill="#F5B7B1" />
       {activo ? (
@@ -159,7 +171,6 @@ function GaticoGrisLogo({ activo }: { activo: boolean }) {
       )}
       <polygon points="30.5,27.5 33.5,27.5 32,29.5" fill="#F1948A" />
       <path d="M29 30.5 Q30.5 32.5 32 30.5 Q33.5 32.5 35 30.5" stroke="#3B2B23" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-      {/* Patitas blancas apoyadas sobre el círculo beige */}
       <ellipse cx="22" cy="37" rx="4.5" ry="3" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="1.8" />
       <ellipse cx="42" cy="37" rx="4.5" ry="3" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="1.8" />
     </svg>
@@ -204,7 +215,7 @@ function GaticoChibiCarrito({ asustado }: { asustado: boolean }) {
 }
 
 export default function TiendaEterniaPage() {
-  const [productos, setProductos] = useState<ProductoVela[]>(CATALOGO_INICIAL_VELAS);
+  const [productos, setProductos] = useState<ProductoVela[]>(() => normalizarCatalogoDeseos(CATALOGO_INICIAL_VELAS));
   const [idsOcultos, setIdsOcultos] = useState<string[]>([]);
   const [aromasStock, setAromasStock] = useState<AromaTiendaItem[]>(AROMAS_DEFAULT_TIENDA);
   const [aromaSeleccionadoPorProd, setAromaSeleccionadoPorProd] = useState<Record<string, string>>({});
@@ -259,7 +270,13 @@ export default function TiendaEterniaPage() {
     async function inicializarTienda() {
       const guardadoLocal = localStorage.getItem("eternia_catalogo_v1");
       if (guardadoLocal) {
-        try { setProductos(JSON.parse(guardadoLocal)); } catch (err) { console.error(err); }
+        try {
+          const catNormalizado = normalizarCatalogoDeseos(JSON.parse(guardadoLocal));
+          setProductos(catNormalizado);
+          localStorage.setItem("eternia_catalogo_v1", JSON.stringify(catNormalizado));
+        } catch (err) {
+          console.error(err);
+        }
       }
       const aromasLocal = localStorage.getItem("eternia_aromas_v1");
       if (aromasLocal) {
@@ -278,8 +295,9 @@ export default function TiendaEterniaPage() {
           .order("created_at", { ascending: true });
 
         if (data && data.length > 0) {
-          setProductos(data as ProductoVela[]);
-          localStorage.setItem("eternia_catalogo_v1", JSON.stringify(data));
+          const catNubeNormalizado = normalizarCatalogoDeseos(data as ProductoVela[]);
+          setProductos(catNubeNormalizado);
+          localStorage.setItem("eternia_catalogo_v1", JSON.stringify(catNubeNormalizado));
         }
 
         const { data: cfgRows } = await supabase
@@ -553,7 +571,10 @@ export default function TiendaEterniaPage() {
       );
       const gananciaLibre = valorTotalCarrito - costoTotal;
       const ceraTotal = carrito.reduce((acc, it) => acc + it.producto.cera_g * it.cantidad, 0);
-      const fragTotal = carrito.reduce((acc, it) => acc + it.producto.fragancia_ml * it.cantidad, 0);
+      const fragTotal = carrito.reduce(
+        (acc, it) => acc + (productoLlevaAroma(it.producto) ? it.producto.fragancia_ml : 0) * it.cantidad,
+        0
+      );
       const pabTotal = carrito.reduce((acc, it) => acc + it.producto.pabilo_cm * it.cantidad, 0);
       const hoyStr = new Date().toISOString().split("T")[0];
 
@@ -565,7 +586,7 @@ export default function TiendaEterniaPage() {
         precio_unitario: it.producto.precio_catalogo,
         costo_unitario: it.producto.costo_produccion,
         cera_unitaria_g: it.producto.cera_g,
-        fragancia_unitaria_ml: it.producto.fragancia_ml,
+        fragancia_unitaria_ml: productoLlevaAroma(it.producto) ? it.producto.fragancia_ml : 0,
         pabilo_unitario_cm: it.producto.pabilo_cm,
         tipo_empaque: it.producto.tipo_empaque,
         subtotal: it.producto.precio_catalogo * it.cantidad,
@@ -724,7 +745,6 @@ export default function TiendaEterniaPage() {
             title="¡Haz clic o pasa el mouse para saludar al gatico!"
           >
             <div className="relative">
-              {/* Gatico Trigueño Gris con Blanco encima del círculo beige */}
               <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
                 <GaticoGrisLogo activo={gaticoLogoMoviendo} />
               </div>
@@ -1041,7 +1061,7 @@ export default function TiendaEterniaPage() {
                           </div>
                         ) : (
                           <div className="text-[11px] text-[#7A685F] bg-[#FAF6F0] px-3 py-1 rounded-lg">
-                            ✨ Vela de los deseos (Tradicional sin fragancia)
+                            ✨ Vela Ritual de un Día: Elaborada en cera pura tradicional (no aplica fragancia).
                           </div>
                         )}
                       </div>
@@ -1168,15 +1188,17 @@ export default function TiendaEterniaPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#3B2B23] mb-1">Medio de Pago Preferido para el 50%</label>
+                      <label className="block text-xs font-bold text-[#3B2B23] mb-1">
+                        Métodos de pago: Nequi, Daviplata y transferencia bancaria
+                      </label>
                       <select
                         value={medioPagoPreferido}
                         onChange={(e) => setMedioPagoPreferido(e.target.value)}
                         className="w-full px-3.5 py-3 rounded-xl bg-white border border-[#E8D5CE] text-sm font-medium"
                       >
-                        <option value="Nequi">Nequi (313 201 9146)</option>
-                        <option value="Bancolombia">Bancolombia Ahorros (22582959122)</option>
-                        <option value="Daviplata">Daviplata (313 201 9146)</option>
+                        <option value="Nequi">Nequi</option>
+                        <option value="Daviplata">Daviplata</option>
+                        <option value="Transferencia bancaria">Transferencia bancaria</option>
                       </select>
                     </div>
 
@@ -1221,7 +1243,6 @@ export default function TiendaEterniaPage() {
       {modalMapaAbierto && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
           <div className="bg-[#FAF6F0] max-w-2xl w-full max-h-[88vh] flex flex-col rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden">
-            {/* Cabecera fija con botón X siempre visible en celular */}
             <div className="bg-[#3B2B23] text-[#FAF6F0] p-4 sm:p-5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shrink-0">
@@ -1343,7 +1364,6 @@ export default function TiendaEterniaPage() {
       {modalCuidadoAbierto && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
           <div className="bg-[#FAF6F0] max-w-3xl w-full max-h-[88vh] flex flex-col rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden">
-            {/* CABECERA FIJA CON BOTÓN X SIEMPRE ACCESIBLE EN CELULAR */}
             <div className="bg-[#3B2B23] text-[#FAF6F0] p-4 sm:p-5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shrink-0">
@@ -1363,7 +1383,6 @@ export default function TiendaEterniaPage() {
               </button>
             </div>
 
-            {/* CUERPO CON SCROLL SUAVE */}
             <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
               <div className="grid grid-cols-3 gap-2">
                 {SLIDES_CUIDADO.map((_sl, idx) => (
@@ -1402,9 +1421,7 @@ export default function TiendaEterniaPage() {
                   </div>
                 </div>
 
-                {/* ========================================================= */}
-                {/* SIMULADOR INTERACTIVO PASO 1: QUEMADO + CALCULADORA MÓVIL */}
-                {/* ========================================================= */}
+                {/* SIMULADOR INTERACTIVO PASO 1 */}
                 {slideActivo === 0 && (
                   <div className="pt-3 border-t border-[#F3ECE1] grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
@@ -1454,7 +1471,6 @@ export default function TiendaEterniaPage() {
                       </div>
                     </div>
 
-                    {/* CALCULADORA DE DURACIÓN CON BOTONES TÁCTILES + SLIDER PARA CELULAR */}
                     <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
                       <h5 className="text-xs font-serif font-bold text-[#3B2B23] flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-[#C89D7C]" /> Calculadora de Duración de tu Vela
@@ -1530,9 +1546,7 @@ export default function TiendaEterniaPage() {
                   </div>
                 )}
 
-                {/* ========================================================= */}
-                {/* SIMULADOR INTERACTIVO PASO 2: CORTE DE PABILO A 5 MM      */}
-                {/* ========================================================= */}
+                {/* SIMULADOR INTERACTIVO PASO 2 */}
                 {slideActivo === 1 && (
                   <div className="pt-3 border-t border-[#F3ECE1]">
                     <div className="bg-[#FAF6F0] p-5 rounded-2xl border border-[#E8D5CE] flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -1589,9 +1603,7 @@ export default function TiendaEterniaPage() {
                   </div>
                 )}
 
-                {/* ========================================================= */}
-                {/* SIMULADOR INTERACTIVO PASO 3: SEGUNDA VIDA DE LA VASIJA   */}
-                {/* ========================================================= */}
+                {/* SIMULADOR INTERACTIVO PASO 3 */}
                 {slideActivo === 2 && (
                   <div className="pt-3 border-t border-[#F3ECE1]">
                     <div className="bg-[#FAF6F0] p-4 sm:p-5 rounded-2xl border border-[#E8D5CE] space-y-4">
@@ -1663,7 +1675,6 @@ export default function TiendaEterniaPage() {
               </div>
             </div>
 
-            {/* PIE DE PÁGINA FIJO PARA CAMBIAR DE CAPÍTULO EN CELULAR SIN PROBLEMAS */}
             <div className="p-4 bg-[#F3ECE1] border-t border-[#E8D5CE] flex items-center justify-between shrink-0">
               <button
                 type="button"
@@ -1763,15 +1774,17 @@ export default function TiendaEterniaPage() {
               </div>
 
               <div>
-                <label className="block font-bold mb-1">Medio de Pago (Pago único {formatoCOP(70000)})</label>
+                <label className="block font-bold mb-1">
+                  Métodos de pago: Nequi, Daviplata y transferencia bancaria
+                </label>
                 <select
                   value={clubMedioPago}
                   onChange={(e) => setClubMedioPago(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E8D5CE] text-xs font-bold"
                 >
-                  <option value="Nequi">Nequi (313 201 9146)</option>
-                  <option value="Bancolombia">Bancolombia Ahorros (22582959122)</option>
-                  <option value="Daviplata">Daviplata (313 201 9146)</option>
+                  <option value="Nequi">Nequi</option>
+                  <option value="Daviplata">Daviplata</option>
+                  <option value="Transferencia bancaria">Transferencia bancaria</option>
                 </select>
               </div>
 
@@ -1787,14 +1800,9 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      <footer className="bg-[#F3ECE1] border-t border-[#E8D5CE] py-10 px-4 sm:px-8 text-center text-xs text-[#7A685F] space-y-2 font-serif">
+      {/* PIE DE PÁGINA LIMPIO SOLO CON LA MARCA */}
+      <footer className="bg-[#F3ECE1] border-t border-[#E8D5CE] py-10 px-4 sm:px-8 text-center text-xs text-[#7A685F] font-serif">
         <p className="font-bold text-[#3B2B23] text-sm tracking-widest">ETERNIA CANDLES • BOGOTÁ, COLOMBIA</p>
-        <p className="tracking-wide">
-          Nequi / Daviplata: 313 201 9146 • Bancolombia Ahorros: 22582959122 (María Paula Prada Coronado)
-        </p>
-        <p className="flex items-center justify-center gap-1 text-[11px] pt-2">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#C89D7C]" /> Hecho a mano con amor, diseño y esencia natural.
-        </p>
       </footer>
     </div>
   );
