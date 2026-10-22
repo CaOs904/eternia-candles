@@ -1,5 +1,7 @@
 // src/lib/eternia-engine.ts
 
+export const MIN_RECORDATORIOS = 12;
+
 export interface CostosBaseInsumos {
   ceraPorGramo: number;
   fraganciaPorMl: number;
@@ -21,6 +23,7 @@ export interface ProductoVela {
   precio_catalogo: number;
   descripcion?: string;
   activo_en_tienda?: boolean;
+  esRecordatorio?: boolean;
 }
 
 export interface InsumoItem {
@@ -201,10 +204,10 @@ export function generarMensajeWhatsAppPedido(params: {
   valorTotal: number;
   abono50: number;
 }): string {
-  const resumenItems = params.items.map((it) => `• ${it.cantidad}x ${it.nombre}`).join("\n");
+  const resumenItems = params.items.map((it) => `• ${it.cantidad}x${it.nombre}`).join("\n");
   const nombreCliente = params.clienteNombre.trim() ? params.clienteNombre.trim() : "Cliente";
   
-  return `*ETERNIA CANDLES — NUEVO PEDIDO WEB*\n----------------------------------------\n¡Hola equipo de Eternia! Acabo de apartar mi pedido a través de la tienda.\n\n*Detalles de la orden (${params.codigoPedido}):*\n${resumenItems}\n\n*• Cliente:* ${nombreCliente}\n*• Valor Total:* ${formatoCOP(params.valorTotal)}\n*• Anticipo (50%):* ${formatoCOP(params.abono50)}\n----------------------------------------\nQuedo atento(a) para enviarles el comprobante del anticipo y coordinar los detalles de entrega. ¡Muchas gracias!`;
+  return `*ETERNIA CANDLES — NUEVO PEDIDO WEB*\n----------------------------------------\n¡Hola equipo de Eternia! Acabo de apartar mi pedido a través de la tienda.\n\n*Detalles de la orden (${params.codigoPedido}):*\n${resumenItems}\n\n*• Cliente:* ${nombreCliente}\n*• Valor Total:* ${formatoCOP(params.valorTotal)}\n*• Anticipo (50\%):* ${formatoCOP(params.abono50)}\n----------------------------------------\nQuedo atento(a) para enviarles el comprobante del anticipo y coordinar los detalles de entrega. ¡Muchas gracias!`;
 }
 
 function crearItemSemilla(
@@ -216,7 +219,8 @@ function crearItemSemilla(
   pabilo_cm: number,
   tipo_empaque: string,
   precio_catalogo: number,
-  descripcion: string
+  descripcion: string,
+  esRecordatorio: boolean = false
 ): ProductoVela {
   const costoEmpaque = TARIFAS_EMPAQUE_DEFAULT[tipo_empaque] ?? 1300;
   const calc = calcularCosteoVela({
@@ -240,61 +244,62 @@ function crearItemSemilla(
     precio_catalogo: calc.precioCatalogo,
     descripcion,
     activo_en_tienda: calc.precioCatalogo > 0,
+    esRecordatorio,
   };
 }
 
 export const CATALOGO_INICIAL_VELAS: ProductoVela[] = [
-  crearItemSemilla("v-1", "Caja Velas de Deseos x6", "DÍA DE LAS VELITAS", 6, 150, 84, "Caja Deseos", 18000, "6 velas de deseos (Salud, Amor, Prosperidad, Éxito, Paz, Familia) en caja de regalo."),
-  crearItemSemilla("v-2", "Caja Velas de Deseos x12", "DÍA DE LAS VELITAS", 12, 300, 168, "Caja Deseos", 30000, "12 velas de deseos en tonos pastel para encender el 7 de diciembre."),
-  crearItemSemilla("v-3", "Vela Arbolito de Navidad Grande", "NAVIDAD", 1, 156, 14, "Caja Molde", 17500, "Pino navideño texturizado de 156g con aroma cálido de temporada."),
-  crearItemSemilla("v-4", "Vela Rudolf (Reno Navideño)", "NAVIDAD", 1, 140, 14, "Caja Molde", 15500, "Tierno reno navideño esculpido en cera de molde de alta pureza."),
-  crearItemSemilla("v-5", "Vela Bota Navideña", "NAVIDAD", 1, 176, 12, "Caja Molde", 19000, "Bota navideña con relieves artesanales, ideal para centros de mesa o regalos."),
-  crearItemSemilla("v-6", "Vela Muñeco de Nieve", "NAVIDAD", 1, 55, 9, "Tul Básico", 7500, "Detalle navideño encantador en empaque de tul con cinta."),
-  crearItemSemilla("v-7", "Vela Cascanueces", "NAVIDAD", 1, 305, 16, "Caja Molde", 34000, "Pieza imponente de 305g de cera aromática, el protagonista de la mesa navideña."),
-  crearItemSemilla("v-8", "Vela Bosque de Renos", "NAVIDAD", 1, 266, 12, "Caja Molde", 29000, "Cilindro artístico grabado con escena de bosque y renos (266g)."),
-  crearItemSemilla("v-9", "Vela Árbol Burbujas (Esferas)", "NAVIDAD", 1, 69, 11, "Caja Molde", 9500, "Diseño moderno de arbolito en esferas minimalistas."),
-  crearItemSemilla("v-10", "Vela Sagrada Familia", "NAVIDAD", 1, 102, 12, "Caja Molde", 12500, "Pesebre delicado en cera natural para iluminar el hogar en Navidad."),
-  crearItemSemilla("v-11", "Vela Campana Merry Christmas", "NAVIDAD", 1, 144, 10, "Caja Molde", 16000, "Campana decorativa con grabado Merry Christmas."),
-  crearItemSemilla("v-12", "Vela Esfera Merry Christmas", "NAVIDAD", 1, 165, 9, "Caja Molde", 18000, "Esfera tallada con detalles navideños de 165g."),
-  crearItemSemilla("v-13", "Dúo Merry Christmas (Campana + Esfera)", "NAVIDAD", 2, 309, 19, "Caja Molde", 31000, "Set especial de Navidad: Campana + Esfera Merry Christmas con descuento de kit."),
-  crearItemSemilla("v-14", "Vela Esfera Papá Noel", "NAVIDAD", 1, 202, 11, "Caja Molde", 22000, "Esfera de gran formato (202g) con relieve de Papá Noel."),
-  crearItemSemilla("v-15", "Colección Espíritu Navideño Completa (x6)", "NAVIDAD", 6, 317, 59, "Caja Molde", 34000, "Set completo de 6 figuras: Reno, Copo, Jengibre y 3 Arbolitos navideños."),
-  crearItemSemilla("v-16", "Espíritu Navideño: Reno", "NAVIDAD", 1, 105, 13, "Tul Básico", 11500, "Figura individual de Reno navideño de 105g."),
-  crearItemSemilla("v-17", "Espíritu Navideño: Copo de Nieve", "NAVIDAD", 1, 44, 8, "Tul Básico", 6000, "Copo de nieve aromático en tul decorativo."),
-  crearItemSemilla("v-18", "Espíritu Navideño: Hombre de Jengibre", "NAVIDAD", 1, 40, 9, "Tul Básico", 6000, "Galleta de jengibre en cera aromática."),
-  crearItemSemilla("v-19", "Espíritu Navideño: Árbol Picos", "NAVIDAD", 1, 43, 10, "Tul Básico", 6000, "Arbolito de picos navideño."),
-  crearItemSemilla("v-20", "Espíritu Navideño: Árbol Redondo", "NAVIDAD", 1, 41, 9, "Tul Básico", 6000, "Arbolito redondo minimalista."),
-  crearItemSemilla("v-21", "Espíritu Navideño: Árbol ZigZag", "NAVIDAD", 1, 44, 10, "Tul Básico", 6000, "Arbolito textura zigzag."),
-  crearItemSemilla("v-22", "Vela en Vaso Cristal Medium (5x8 cm - Solo Vela)", "RECORDATORIOS Y EVENTOS", 1, 93, 10, "Vaso Vidrio 5x8", 16500, "Vela aromática en vaso de cristal de 5x8 cm (93g de cera suave, diseño limpio sin osito)."),
-  crearItemSemilla("v-23", "Osito Vaso Vidrio Medium (5x8 cm)", "RECORDATORIOS Y EVENTOS", 1, 103, 14, "Vaso Vidrio 5x8", 17500, "Vela en vaso de cristal de 5x8 cm coronada con tierno osito de cera artesanal."),
-  crearItemSemilla("v-24", "Vela en Vaso Cristal Big (8x8 cm - Solo Vela)", "RECORDATORIOS Y EVENTOS", 1, 192, 14, "Vaso Vidrio 8x8", 24000, "Vela aromática de gran formato en vaso de cristal de 8x8 cm (192g de cera natural, sin osito)."),
-  crearItemSemilla("v-25", "Osito Vaso Vidrio Big (8x8 cm)", "RECORDATORIOS Y EVENTOS", 1, 202, 18, "Vaso Vidrio 8x8", 25000, "Nuestra versión grande en vaso de 8x8 cm (202g) con osito decorativo en la superficie."),
-  crearItemSemilla("v-26", "Recordatorio Osito Basic (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 6, "Tul Básico", 4500, "Recordatorio clásico de osito en tul con cinta y tarjeta personalizada."),
-  crearItemSemilla("v-27", "Recordatorio Osito Ivory (En Caja Acetato)", "RECORDATORIOS Y EVENTOS", 1, 10, 6, "Caja Acetato", 6500, "Osito presentado en caja cristalina de acetato con moño decorativo."),
-  crearItemSemilla("v-28", "Vela Osito Rosas (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 54, 9, "Tul Básico", 10000, "Osito esculpido en textura de pétalos de rosa (54g) en tul."),
-  crearItemSemilla("v-29", "Vela Osito Rosas (En Caja Acetato)", "RECORDATORIOS Y EVENTOS", 1, 54, 9, "Caja Acetato", 12000, "Osito de rosas en caja de lujo de acetato transparente."),
-  crearItemSemilla("v-30", "Recordatorio Angelito (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 75, 10, "Tul Básico", 11000, "Ideal para bautizos y primeras comuniones (75g)."),
-  crearItemSemilla("v-31", "Recordatorio Nube (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Mini nube aromática para baby showers y eventos."),
-  crearItemSemilla("v-32", "Recordatorio Huellitas (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Detalle tierno de huellita en tul."),
-  crearItemSemilla("v-33", "Recordatorio Corazón Pequeño (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Corazón aromático para bodas, aniversarios o eventos."),
-  crearItemSemilla("v-34", "Recordatorio Macaron (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Vela tipo macaron francés."),
-  crearItemSemilla("v-35", "Recordatorio Tajada de Limón (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Detalle cítrico decorativo en tul."),
-  crearItemSemilla("v-36", "Recordatorio Bloque Corazón (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Mini bloque con relieve de corazón."),
-  crearItemSemilla("v-37", "Recordatorio Osito Honey (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 8, 6, "Tul Básico", 5000, "Tierno osito edición Honey en tul."),
-  crearItemSemilla("v-38", "Vela Cilindro Recordatorio 13 cm", "RECORDATORIOS Y EVENTOS", 1, 33, 15, "Tul Básico", 6500, "Vela cilíndrica estilizada de 13 cm."),
-  crearItemSemilla("v-39", "Vela Cilindro Recordatorio 20 cm", "RECORDATORIOS Y EVENTOS", 1, 48, 22, "Tul Básico", 8500, "Vela cilíndrica alta de 20 cm."),
-  crearItemSemilla("v-40", "Vela Perlas Esfera", "TODA OCASIÓN", 1, 95, 8, "Caja Molde", 12000, "Esfera estética de perlas para decorar cualquier rincón."),
-  crearItemSemilla("v-41", "Vela Perlas Cilindro", "TODA OCASIÓN", 1, 185, 10, "Caja Molde", 20000, "Cilindro elegante de perlas de 185g."),
-  crearItemSemilla("v-42", "Dúo Perlas (Esfera + Cilindro)", "TODA OCASIÓN", 2, 279, 18, "Caja Molde", 29000, "Combinación de diseño interior: Esfera + Cilindro de perlas."),
-  crearItemSemilla("v-43", "Vela Espiral", "TODA OCASIÓN", 1, 88, 8, "Caja Molde", 11000, "Curvas arquitectónicas suaves y aroma relajante."),
-  crearItemSemilla("v-44", "Vela Pera (Hexágonos)", "TODA OCASIÓN", 1, 135, 11, "Caja Molde", 15000, "Textura geométrica moderna de 135g."),
-  crearItemSemilla("v-45", "Vela Mini Bubble (Burbuja)", "TODA OCASIÓN", 1, 36, 6, "Tul Básico", 5500, "Clásico cubo bubble aesthetic."),
-  crearItemSemilla("v-46", "Vela en Vasija de Yeso: Tarro de Miel", "VASIJAS DE YESO", 1, 90, 10, "Vasija Yeso Miel", 15000, "Vasija artesanal en yeso y cemento blanco impermeabilizada, reutilizable como joyero."),
-  crearItemSemilla("v-47", "Vela en Vasija de Yeso: Infinito", "VASIJAS DE YESO", 1, 120, 14, "Vasija Yeso Infinito", 18000, "Vasija escultural Infinito hecha a mano en taller."),
-  crearItemSemilla("v-48", "Vela en Vasija de Yeso: Taza Corazón", "VASIJAS DE YESO", 1, 100, 10, "Vasija Yeso Corazón", 16000, "Vasija de autor con silueta de corazón en cemento blanco y yeso."),
-  crearItemSemilla("v-49", "Vela Fantasma (Boo)", "HALLOWEEN", 1, 34, 7, "Tul Básico", 7000, "Fantasmita Boo aromático."),
-  crearItemSemilla("v-50", "Vela Momia (Mumi)", "HALLOWEEN", 1, 11, 5, "Tul Básico", 4500, "Mini momia coleccionable."),
-  crearItemSemilla("v-51", "Dúo Encantado (Fantasma + Momia)", "HALLOWEEN", 2, 45, 12, "Caja Molde", 10500, "Kit especial de Halloween Boo + Mumi."),
+  crearItemSemilla("v-1", "Caja Velas de Deseos x6", "DÍA DE LAS VELITAS", 6, 150, 84, "Caja Deseos", 18000, "6 velas de deseos (Salud, Amor, Prosperidad, Éxito, Paz, Familia) en caja de regalo.", false),
+  crearItemSemilla("v-2", "Caja Velas de Deseos x12", "DÍA DE LAS VELITAS", 12, 300, 168, "Caja Deseos", 30000, "12 velas de deseos en tonos pastel para encender el 7 de diciembre.", false),
+  crearItemSemilla("v-3", "Vela Arbolito de Navidad Grande", "NAVIDAD", 1, 156, 14, "Caja Molde", 17500, "Pino navideño texturizado de 156g con aroma cálido de temporada.", false),
+  crearItemSemilla("v-4", "Vela Rudolf (Reno Navideño)", "NAVIDAD", 1, 140, 14, "Caja Molde", 15500, "Tierno reno navideño esculpido en cera de molde de alta pureza.", false),
+  crearItemSemilla("v-5", "Vela Bota Navideña", "NAVIDAD", 1, 176, 12, "Caja Molde", 19000, "Bota navideña con relieves artesanales, ideal para centros de mesa o regalos.", false),
+  crearItemSemilla("v-6", "Vela Muñeco de Nieve", "NAVIDAD", 1, 55, 9, "Tul Básico", 7500, "Detalle navideño encantador en empaque de tul con cinta.", false),
+  crearItemSemilla("v-7", "Vela Cascanueces", "NAVIDAD", 1, 305, 16, "Caja Molde", 34000, "Pieza imponente de 305g de cera aromática, el protagonista de la mesa navideña.", false),
+  crearItemSemilla("v-8", "Vela Bosque de Renos", "NAVIDAD", 1, 266, 12, "Caja Molde", 29000, "Cilindro artístico grabado con escena de bosque y renos (266g).", false),
+  crearItemSemilla("v-9", "Vela Árbol Burbujas (Esferas)", "NAVIDAD", 1, 69, 11, "Caja Molde", 9500, "Diseño moderno de arbolito en esferas minimalistas.", false),
+  crearItemSemilla("v-10", "Vela Sagrada Familia", "NAVIDAD", 1, 102, 12, "Caja Molde", 12500, "Pesebre delicado en cera natural para iluminar el hogar en Navidad.", false),
+  crearItemSemilla("v-11", "Vela Campana Merry Christmas", "NAVIDAD", 1, 144, 10, "Caja Molde", 16000, "Campana decorativa con grabado Merry Christmas.", false),
+  crearItemSemilla("v-12", "Vela Esfera Merry Christmas", "NAVIDAD", 1, 165, 9, "Caja Molde", 18000, "Esfera tallada con detalles navideños de 165g.", false),
+  crearItemSemilla("v-13", "Dúo Merry Christmas (Campana + Esfera)", "NAVIDAD", 2, 309, 19, "Caja Molde", 31000, "Set especial de Navidad: Campana + Esfera Merry Christmas con descuento de kit.", false),
+  crearItemSemilla("v-14", "Vela Esfera Papá Noel", "NAVIDAD", 1, 202, 11, "Caja Molde", 22000, "Esfera de gran formato (202g) con relieve de Papá Noel.", false),
+  crearItemSemilla("v-15", "Colección Espíritu Navideño Completa (x6)", "NAVIDAD", 6, 317, 59, "Caja Molde", 34000, "Set completo de 6 figuras: Reno, Copo, Jengibre y 3 Arbolitos navideños.", false),
+  crearItemSemilla("v-16", "Espíritu Navideño: Reno", "NAVIDAD", 1, 105, 13, "Tul Básico", 11500, "Figura individual de Reno navideño de 105g.", false),
+  crearItemSemilla("v-17", "Espíritu Navideño: Copo de Nieve", "NAVIDAD", 1, 44, 8, "Tul Básico", 6000, "Copo de nieve aromático en tul decorativo.", false),
+  crearItemSemilla("v-18", "Espíritu Navideño: Hombre de Jengibre", "NAVIDAD", 1, 40, 9, "Tul Básico", 6000, "Galleta de jengibre en cera aromática.", false),
+  crearItemSemilla("v-19", "Espíritu Navideño: Árbol Picos", "NAVIDAD", 1, 43, 10, "Tul Básico", 6000, "Arbolito de picos navideño.", false),
+  crearItemSemilla("v-20", "Espíritu Navideño: Árbol Redondo", "NAVIDAD", 1, 41, 9, "Tul Básico", 6000, "Arbolito redondo minimalista.", false),
+  crearItemSemilla("v-21", "Espíritu Navideño: Árbol ZigZag", "NAVIDAD", 1, 44, 10, "Tul Básico", 6000, "Arbolito textura zigzag.", false),
+  crearItemSemilla("v-22", "Vela en Vaso Cristal Medium (5x8 cm - Solo Vela)", "RECORDATORIOS Y EVENTOS", 1, 93, 10, "Vaso Vidrio 5x8", 16500, "Vela aromática en vaso de cristal de 5x8 cm (93g de cera suave, diseño limpio sin osito).", false),
+  crearItemSemilla("v-23", "Osito Vaso Vidrio Medium (5x8 cm)", "RECORDATORIOS Y EVENTOS", 1, 103, 14, "Vaso Vidrio 5x8", 17500, "Vela en vaso de cristal de 5x8 cm coronada con tierno osito de cera artesanal.", false),
+  crearItemSemilla("v-24", "Vela en Vaso Cristal Big (8x8 cm - Solo Vela)", "RECORDATORIOS Y EVENTOS", 1, 192, 14, "Vaso Vidrio 8x8", 24000, "Vela aromática de gran formato en vaso de cristal de 8x8 cm (192g de cera natural, sin osito).", false),
+  crearItemSemilla("v-25", "Osito Vaso Vidrio Big (8x8 cm)", "RECORDATORIOS Y EVENTOS", 1, 202, 18, "Vaso Vidrio 8x8", 25000, "Nuestra versión grande en vaso de 8x8 cm (202g) con osito decorativo en la superficie.", false),
+  crearItemSemilla("v-26", "Recordatorio Osito Basic (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 6, "Tul Básico", 4500, "Recordatorio clásico de osito en tul con cinta y tarjeta personalizada.", true),
+  crearItemSemilla("v-27", "Recordatorio Osito Ivory (En Caja Acetato)", "RECORDATORIOS Y EVENTOS", 1, 10, 6, "Caja Acetato", 6500, "Osito presentado en caja cristalina de acetato con moño decorativo.", true),
+  crearItemSemilla("v-28", "Vela Osito Rosas (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 54, 9, "Tul Básico", 10000, "Osito esculpido en textura de pétalos de rosa (54g) en tul.", true),
+  crearItemSemilla("v-29", "Vela Osito Rosas (En Caja Acetato)", "RECORDATORIOS Y EVENTOS", 1, 54, 9, "Caja Acetato", 12000, "Osito de rosas en caja de lujo de acetato transparente.", true),
+  crearItemSemilla("v-30", "Recordatorio Angelito (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 75, 10, "Tul Básico", 11000, "Ideal para bautizos y primeras comuniones (75g).", true),
+  crearItemSemilla("v-31", "Recordatorio Nube (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Mini nube aromática para baby showers y eventos.", true),
+  crearItemSemilla("v-32", "Recordatorio Huellitas (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Detalle tierno de huellita en tul.", true),
+  crearItemSemilla("v-33", "Recordatorio Corazón Pequeño (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Corazón aromático para bodas, aniversarios o eventos.", true),
+  crearItemSemilla("v-34", "Recordatorio Macaron (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Vela tipo macaron francés.", true),
+  crearItemSemilla("v-35", "Recordatorio Tajada de Limón (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Detalle cítrico decorativo en tul.", true),
+  crearItemSemilla("v-36", "Recordatorio Bloque Corazón (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 10, 5, "Tul Básico", 4500, "Mini bloque con relieve de corazón.", true),
+  crearItemSemilla("v-37", "Recordatorio Osito Honey (En Tul)", "RECORDATORIOS Y EVENTOS", 1, 8, 6, "Tul Básico", 5000, "Tierno osito edición Honey en tul.", true),
+  crearItemSemilla("v-38", "Vela Cilindro Recordatorio 13 cm", "RECORDATORIOS Y EVENTOS", 1, 33, 15, "Tul Básico", 6500, "Vela cilíndrica estilizada de 13 cm.", true),
+  crearItemSemilla("v-39", "Vela Cilindro Recordatorio 20 cm", "RECORDATORIOS Y EVENTOS", 1, 48, 22, "Tul Básico", 8500, "Vela cilíndrica alta de 20 cm.", true),
+  crearItemSemilla("v-40", "Vela Perlas Esfera", "TODA OCASIÓN", 1, 95, 8, "Caja Molde", 12000, "Esfera estética de perlas para decorar cualquier rincón.", false),
+  crearItemSemilla("v-41", "Vela Perlas Cilindro", "TODA OCASIÓN", 1, 185, 10, "Caja Molde", 20000, "Cilindro elegante de perlas de 185g.", false),
+  crearItemSemilla("v-42", "Dúo Perlas (Esfera + Cilindro)", "TODA OCASIÓN", 2, 279, 18, "Caja Molde", 29000, "Combinación de diseño interior: Esfera + Cilindro de perlas.", false),
+  crearItemSemilla("v-43", "Vela Espiral", "TODA OCASIÓN", 1, 88, 8, "Caja Molde", 11000, "Curvas arquitectónicas suaves y aroma relajante.", false),
+  crearItemSemilla("v-44", "Vela Pera (Hexágonos)", "TODA OCASIÓN", 1, 135, 11, "Caja Molde", 15000, "Textura geométrica moderna de 135g.", false),
+  crearItemSemilla("v-45", "Vela Mini Bubble (Burbuja)", "TODA OCASIÓN", 1, 36, 6, "Tul Básico", 5500, "Clásico cubo bubble aesthetic.", false),
+  crearItemSemilla("v-46", "Vela en Vasija de Yeso: Tarro de Miel", "VASIJAS DE YESO", 1, 90, 10, "Vasija Yeso Miel", 15000, "Vasija artesanal en yeso y cemento blanco impermeabilizada, reutilizable como joyero.", false),
+  crearItemSemilla("v-47", "Vela en Vasija de Yeso: Infinito", "VASIJAS DE YESO", 1, 120, 14, "Vasija Yeso Infinito", 18000, "Vasija escultural Infinito hecha a mano en taller.", false),
+  crearItemSemilla("v-48", "Vela en Vasija de Yeso: Taza Corazón", "VASIJAS DE YESO", 1, 100, 10, "Vasija Yeso Corazón", 16000, "Vasija de autor con silueta de corazón en cemento blanco y yeso.", false),
+  crearItemSemilla("v-49", "Vela Fantasma (Boo)", "HALLOWEEN", 1, 34, 7, "Tul Básico", 7000, "Fantasmita Boo aromático.", false),
+  crearItemSemilla("v-50", "Vela Momia (Mumi)", "HALLOWEEN", 1, 11, 5, "Tul Básico", 4500, "Mini momia coleccionable.", false),
+  crearItemSemilla("v-51", "Dúo Encantado (Fantasma + Momia)", "HALLOWEEN", 2, 45, 12, "Caja Molde", 10500, "Kit especial de Halloween Boo + Mumi.", false),
 ];
 
 export const INSUMOS_INICIALES: InsumoItem[] = [

@@ -29,6 +29,7 @@ import {
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import {
   CATALOGO_INICIAL_VELAS,
+  MIN_RECORDATORIOS,
   ProductoVela,
   PedidoItemDetalle,
   formatoCOP,
@@ -117,16 +118,65 @@ const SLIDES_CUIDADO = [
 const TEXTO_CAJA_DESEOS_X6 = "6 velas de deseos (Salud, Amor, Prosperidad, Éxito, Paz, Familia) en caja de regalo.";
 const TEXTO_CAJA_DESEOS_X12 = "12 velas de deseos en tonos pastel para encender el 7 de diciembre.";
 
+// Lista de IDs exactos de las 14 referencias con esRecordatorio = true
+const IDS_RECORDATORIOS = new Set([
+  "v-26", // Recordatorio Osito Basic (En Tul)
+  "v-27", // Recordatorio Osito Ivory (En Caja Acetato)
+  "v-28", // Vela Osito Rosas (En Tul)
+  "v-29", // Vela Osito Rosas (En Caja Acetato)
+  "v-30", // Recordatorio Angelito (En Tul)
+  "v-31", // Recordatorio Nube (En Tul)
+  "v-32", // Recordatorio Huellitas (En Tul)
+  "v-33", // Recordatorio Corazón Pequeño (En Tul)
+  "v-34", // Recordatorio Macaron (En Tul)
+  "v-35", // Recordatorio Tajada de Limón (En Tul)
+  "v-36", // Recordatorio Bloque Corazón (En Tul)
+  "v-37", // Recordatorio Osito Honey (En Tul)
+  "v-38", // Vela Cilindro Recordatorio 13 cm
+  "v-39", // Vela Cilindro Recordatorio 20 cm
+]);
+
+function determinarEsRecordatorio(prod: ProductoVela): boolean {
+  if (typeof prod.esRecordatorio === "boolean") return prod.esRecordatorio;
+  if (IDS_RECORDATORIOS.has(prod.id)) return true;
+
+  const n = (prod.nombre || "").toLowerCase();
+  // Las velas en vaso de cristal y los ositos en vaso se venden sueltas (false)
+  if (n.includes("vaso") || n.includes("cristal")) return false;
+
+  if (
+    n.includes("osito basic") ||
+    n.includes("osito ivory") ||
+    n.includes("osito rosas") ||
+    n.includes("angelito") ||
+    n.includes("recordatorio nube") ||
+    n.includes("huellitas") ||
+    n.includes("corazón pequeño") ||
+    n.includes("corazon pequeño") ||
+    n.includes("macaron") ||
+    n.includes("tajada de limón") ||
+    n.includes("tajada de limon") ||
+    n.includes("bloque corazón") ||
+    n.includes("bloque corazon") ||
+    n.includes("osito honey") ||
+    n.includes("cilindro recordatorio")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function normalizarCatalogoDeseos(lista: ProductoVela[]): ProductoVela[] {
   return lista.map((prod) => {
     const n = (prod.nombre || "").toLowerCase();
+    const esRec = determinarEsRecordatorio(prod);
     if (prod.id === "v-1" || (n.includes("deseos") && n.includes("x6"))) {
-      return { ...prod, descripcion: TEXTO_CAJA_DESEOS_X6 };
+      return { ...prod, descripcion: TEXTO_CAJA_DESEOS_X6, esRecordatorio: false };
     }
     if (prod.id === "v-2" || (n.includes("deseos") && n.includes("x12"))) {
-      return { ...prod, descripcion: TEXTO_CAJA_DESEOS_X12 };
+      return { ...prod, descripcion: TEXTO_CAJA_DESEOS_X12, esRecordatorio: false };
     }
-    return prod;
+    return { ...prod, esRecordatorio: esRec };
   });
 }
 
@@ -333,7 +383,16 @@ export default function TiendaEterniaPage() {
 
     const carritoGuardado = localStorage.getItem("eternia_carrito_v2");
     if (carritoGuardado) {
-      try { setCarrito(JSON.parse(carritoGuardado)); } catch (err) { console.error(err); }
+      try {
+        const parsedCar: ItemCarritoConAroma[] = JSON.parse(carritoGuardado);
+        const carritoNormalizado = parsedCar.map((it) => ({
+          ...it,
+          producto: { ...it.producto, esRecordatorio: determinarEsRecordatorio(it.producto) },
+        }));
+        setCarrito(carritoNormalizado);
+      } catch (err) {
+        console.error(err);
+      }
     }
   }, []);
 
@@ -369,6 +428,10 @@ export default function TiendaEterniaPage() {
   const agregarAlCarrito = (producto: ProductoVela, cant: number = 1) => {
     const aromaFinal = obtenerAromaDeProducto(producto);
     const clave = `${producto.id}__${aromaFinal}`;
+    const prodConBandera: ProductoVela = {
+      ...producto,
+      esRecordatorio: determinarEsRecordatorio(producto),
+    };
 
     setGaticoCarritoSaltando(true);
     setTimeout(() => setGaticoCarritoSaltando(false), 600);
@@ -377,10 +440,12 @@ export default function TiendaEterniaPage() {
       const existe = prev.find((item) => item.clave === clave);
       if (existe) {
         return prev.map((item) =>
-          item.clave === clave ? { ...item, cantidad: Math.min(100, item.cantidad + cant) } : item
+          item.clave === clave
+            ? { ...item, producto: prodConBandera, cantidad: Math.min(100, item.cantidad + cant) }
+            : item
         );
       }
-      return [...prev, { clave, producto, cantidad: cant, aroma: aromaFinal }];
+      return [...prev, { clave, producto: prodConBandera, cantidad: cant, aroma: aromaFinal }];
     });
   };
 
@@ -411,7 +476,23 @@ export default function TiendaEterniaPage() {
   );
   const abono50Carrito = useMemo(() => redondearCentena(valorTotalCarrito * 0.5), [valorTotalCarrito]);
   const fechaEntregaEstimada = useMemo(() => calcularFechaEntregaHabil(undefined, 5), []);
+
+  // Regla de la docena para recordatorios vs Regla estándar de $15.000
+  const totalRecordatorios = useMemo(
+    () =>
+      carrito.reduce(
+        (acc, it) => acc + (determinarEsRecordatorio(it.producto) ? it.cantidad : 0),
+        0
+      ),
+    [carrito]
+  );
+  const tieneRecordatorios = totalRecordatorios > 0;
+  const faltanRecordatorios = Math.max(0, MIN_RECORDATORIOS - totalRecordatorios);
+  const porcentajeRecordatorios = Math.min(100, Math.round((totalRecordatorios / MIN_RECORDATORIOS) * 100));
   const cumpleMinimoPedido = valorTotalCarrito >= 15000;
+  const puedeEnviarPedido = tieneRecordatorios
+    ? totalRecordatorios >= MIN_RECORDATORIOS
+    : cumpleMinimoPedido;
 
   const consultarSeguimientoPedido = async (e?: React.FormEvent, codigoDirecto?: string) => {
     if (e) e.preventDefault();
@@ -542,7 +623,26 @@ export default function TiendaEterniaPage() {
 
   const confirmarPedidoWhatsApp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (carrito.length === 0 || !cumpleMinimoPedido) return;
+    if (carrito.length === 0) return;
+
+    // Validación estricta justo antes de generar el mensaje de WhatsApp
+    const sumaRecActual = carrito.reduce(
+      (acc, it) => acc + (determinarEsRecordatorio(it.producto) ? it.cantidad : 0),
+      0
+    );
+    if (sumaRecActual > 0 && sumaRecActual < MIN_RECORDATORIOS) {
+      alert(
+        `Llevas ${sumaRecActual} de ${MIN_RECORDATORIOS} recordatorios. Te faltan ${
+          MIN_RECORDATORIOS - sumaRecActual
+        } para completar la docena.`
+      );
+      return;
+    }
+    if (sumaRecActual === 0 && !cumpleMinimoPedido) {
+      alert(`El pedido mínimo de taller es de ${formatoCOP(15000)}.`);
+      return;
+    }
+
     if (!clienteNombre.trim() || !clienteWhatsapp.trim()) {
       alert("Por favor escribe tu nombre y tu número de WhatsApp para agendar tu pedido.");
       return;
@@ -1068,13 +1168,46 @@ export default function TiendaEterniaPage() {
                     );
                   })}
 
-                  {!cumpleMinimoPedido && (
-                    <div className="p-3.5 rounded-xl bg-[#FCF3CF] border border-[#D35400]/30 text-xs text-[#3B2B23] space-y-1">
-                      <strong className="block text-[#D35400]">✨ Pedido Mínimo de Taller: {formatoCOP(15000)}</strong>
-                      <p>
-                        Te faltan <strong>{formatoCOP(15000 - valorTotalCarrito)}</strong> para completar el pedido mínimo artesanal. ¡Agrega otra velita o arma tu dúo!
-                      </p>
+                  {/* REGLA DE LA DOCENA PARA RECORDATORIOS O MÍNIMO DE $15.000 */}
+                  {tieneRecordatorios ? (
+                    <div
+                      className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                        totalRecordatorios >= MIN_RECORDATORIOS
+                          ? "bg-[#D4EFDF] border-[#196F3D]/30 text-[#196F3D]"
+                          : "bg-[#FCF3CF] border-[#D35400]/30 text-[#3B2B23]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <span>Llevas {totalRecordatorios} de {MIN_RECORDATORIOS} recordatorios</span>
+                        <span>{porcentajeRecordatorios}%</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-white/80 rounded-full overflow-hidden border border-[#C89D7C]/40">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            totalRecordatorios >= MIN_RECORDATORIOS ? "bg-[#196F3D]" : "bg-[#C89D7C]"
+                          }`}
+                          style={{ width: `${porcentajeRecordatorios}%` }}
+                        />
+                      </div>
+                      {totalRecordatorios < MIN_RECORDATORIOS ? (
+                        <p className="font-semibold text-[#D35400]">
+                          Te faltan {faltanRecordatorios} para completar la docena
+                        </p>
+                      ) : (
+                        <p className="font-semibold text-[#196F3D]">
+                          ¡Docena completada! Ya puedes enviar tu pedido.
+                        </p>
+                      )}
                     </div>
+                  ) : (
+                    !cumpleMinimoPedido && (
+                      <div className="p-3.5 rounded-xl bg-[#FCF3CF] border border-[#D35400]/30 text-xs text-[#3B2B23] space-y-1">
+                        <strong className="block text-[#D35400]">✨ Pedido Mínimo de Taller: {formatoCOP(15000)}</strong>
+                        <p>
+                          Te faltan <strong>{formatoCOP(15000 - valorTotalCarrito)}</strong> para completar el pedido mínimo artesanal. ¡Agrega otra velita o arma tu dúo!
+                        </p>
+                      </div>
+                    )
                   )}
 
                   <div className="bg-white p-4 rounded-2xl border border-[#C89D7C] space-y-3 shadow-xs">
@@ -1204,7 +1337,7 @@ export default function TiendaEterniaPage() {
 
                     <button
                       type="submit"
-                      disabled={enviando || !cumpleMinimoPedido}
+                      disabled={enviando || !puedeEnviarPedido}
                       className="w-full bg-[#C89D7C] hover:bg-[#b58967] disabled:opacity-50 text-white font-bold py-4 px-6 rounded-xl shadow-md flex items-center justify-center gap-2 transition text-sm cursor-pointer tracking-wider"
                     >
                       <Send className="w-4 h-4" />
