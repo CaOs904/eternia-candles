@@ -21,6 +21,7 @@ import {
   Heart,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   PackageCheck,
   Crown,
   Flower2,
@@ -111,6 +112,40 @@ const SLIDES_CUIDADO = [
       malo: "Desechar el envase ➔ Pierdes una pieza única hecha a mano.",
       bueno: "Reutilizar como maceta, joyero o porta-incienso ➔ Decoración eterna.",
     },
+  },
+];
+
+// PASO 6: Textos exactos para la sección informativa "Tu Pedido"
+const INFO_TU_PEDIDO = [
+  {
+    id: "anticipacion",
+    titulo: "Anticipación",
+    texto:
+      "Realiza tu pedido con al menos 5 días hábiles de anticipación para garantizar un proceso cuidadoso de creación y entrega.",
+  },
+  {
+    id: "confirmacion",
+    titulo: "Confirmación",
+    texto:
+      "Para iniciar la elaboración se requiere un anticipo del 50% del valor total. Aceptamos pagos por transferencia o efectivo.",
+  },
+  {
+    id: "entregas",
+    titulo: "Entregas",
+    texto:
+      "El tiempo estimado de entrega es de 5 a 6 días hábiles. No contamos con servicio de domicilio propio: los pedidos se despachan por aplicativo o transportadora y el valor del envío se cancela contra entrega.",
+  },
+  {
+    id: "colores",
+    titulo: "Colores personalizados",
+    texto:
+      "Puedes elegir el color de tu vela según tu gusto o la ocasión. Consulta la disponibilidad de tonos y formas que están actualmente en producción.",
+  },
+  {
+    id: "cambios",
+    titulo: "Cambios y devoluciones",
+    texto:
+      "Cada vela se elabora a pedido, con el aroma, el color y los detalles que tú eliges, y la cera una vez encendida no se puede reutilizar. Por eso no hacemos cambios ni devoluciones una vez confirmado el pedido.",
   },
 ];
 
@@ -280,6 +315,9 @@ export default function TiendaEterniaPage() {
   const [carritoAbierto, setCarritoAbierto] = useState<boolean>(false);
   const [gaticoCarritoSaltando, setGaticoCarritoSaltando] = useState<boolean>(false);
   const [gaticoLogoMoviendo, setGaticoLogoMoviendo] = useState<boolean>(false);
+
+  // Estado del acordeón desplegable de la sección "Tu Pedido"
+  const [acordeonAbierto, setAcordeonAbierto] = useState<string | null>("anticipacion");
 
   // Registro de elementos que ya aparecieron con scroll (para animar 1 sola vez por elemento)
   const elementosReveladosRef = useRef<Set<string>>(new Set());
@@ -1211,6 +1249,60 @@ export default function TiendaEterniaPage() {
             </button>
           </div>
         </div>
+
+        {/* PASO 6: SECCIÓN INFORMATIVA "TU PEDIDO" EN ACORDEONES DESPLEGABLES ANTES DEL PIE DE PÁGINA */}
+        <section
+          data-reveal-id="seccion-tu-pedido"
+          data-reveal-delay="0"
+          aria-labelledby="titulo-tu-pedido"
+          className="max-w-3xl mx-auto w-full pt-2"
+        >
+          <div className="text-center space-y-2 mb-6">
+            <span className="inline-block bg-[#E8D5CE]/60 text-[#3B2B23] text-[10px] font-semibold px-3.5 py-1 rounded-full uppercase tracking-widest font-serif">
+              Información Importante
+            </span>
+            <h2
+              id="titulo-tu-pedido"
+              className="text-2xl sm:text-3xl font-serif font-bold tracking-wider text-[#3B2B23]"
+            >
+              TU PEDIDO
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {INFO_TU_PEDIDO.map((item) => {
+              const abierto = acordeonAbierto === item.id;
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-2xl border border-[#E8D5CE] overflow-hidden shadow-xs transition-colors"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setAcordeonAbierto(abierto ? null : item.id)}
+                    aria-expanded={abierto}
+                    className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 hover:bg-[#F3ECE1]/50 transition-colors cursor-pointer"
+                  >
+                    <span className="font-serif font-bold text-sm sm:text-base text-[#3B2B23] tracking-wide">
+                      {item.titulo}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#C89D7C] shrink-0 transition-transform duration-300 ${
+                        abierto ? "rotate-180" : "rotate-0"
+                      }`}
+                    />
+                  </button>
+
+                  {abierto && (
+                    <div className="px-5 pb-4 pt-1 border-t border-[#FAF6F0] text-xs sm:text-sm text-[#7A685F] leading-relaxed">
+                      {item.texto}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </main>
 
       {totalUnidades > 0 && !carritoAbierto && (
