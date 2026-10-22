@@ -109,7 +109,6 @@ const SLIDES_CUIDADO = [
     titulo: "El Primer Encendido lo Define Todo",
     descripcion:
       "La cera vegetal natural tiene memoria térmica. La primera vez que enciendas tu vela Eternia, déjala arder entre 2 y 3 horas continuas hasta que la cera derretida alcance los bordes del recipiente o molde.",
-    tipInteractivo: "Si la apagas antes de tiempo, se formará un 'túnel' en el centro y la cera de los bordes nunca se consumirá.",
     Comparativa: {
       malo: "Encendido de 20 min ➔ Crea túnel central y desperdicia cera.",
       bueno: "Encendido de 2 a 3 horas ➔ Piscina uniforme y aroma envolvente.",
@@ -120,7 +119,6 @@ const SLIDES_CUIDADO = [
     titulo: "Corte Preciso a 5 Milímetros",
     descripcion:
       "Antes de cada encendido, recorta la punta quemada del pabilo de algodón dejando aproximadamente 5 mm de altura. Esto garantiza una llama serena, limpia y sin humo negro.",
-    tipInteractivo: "Un pabilo demasiado largo consume la cera más rápido de lo debido y puede manchar tu vasija artesanal.",
     Comparativa: {
       malo: "Pabilo largo (>1 cm) ➔ Llama inquieta, humo y consumo acelerado.",
       bueno: "Pabilo a 5 mm ➔ Llama cálida, combustión lenta y máxima duración.",
@@ -131,7 +129,6 @@ const SLIDES_CUIDADO = [
     titulo: "Segunda Vida para tus Vasijas Artesanales",
     descripcion:
       "Nuestras vasijas son fundidas a mano con una mezcla exacta de yeso y cemento blanco. Cuando tu vela termine su ciclo, limpia el interior con agua tibia y dale una nueva vida.",
-    tipInteractivo: "Son perfectas como macetas para suculentas, joyeros minimalistas en tu mesa de noche o porta-inciensos.",
     Comparativa: {
       malo: "Desechar el envase ➔ Pierdes una pieza única hecha a mano.",
       bueno: "Reutilizar como maceta o joyero ➔ Decoración eterna en tu hogar.",
@@ -139,7 +136,6 @@ const SLIDES_CUIDADO = [
   },
 ];
 
-// Verifica si la vela lleva fragancia (las velas de los deseos de 1 día no llevan aroma)
 function productoLlevaAroma(prod: ProductoVela): boolean {
   const n = prod.nombre.toLowerCase();
   if (n.includes("deseo") || n.includes("sin aroma")) return false;
@@ -157,23 +153,19 @@ export default function TiendaEterniaPage() {
   const [carrito, setCarrito] = useState<ItemCarritoConAroma[]>([]);
   const [carritoAbierto, setCarritoAbierto] = useState<boolean>(false);
 
-  // Modales de Experiencia Interactiva
   const [modalMapaAbierto, setModalMapaAbierto] = useState<boolean>(false);
   const [modalCuidadoAbierto, setModalCuidadoAbierto] = useState<boolean>(false);
 
-  // Estado del Mapa de Seguimiento
   const [codigoRastreoInput, setCodigoRastreoInput] = useState<string>("");
   const [pedidoRastreado, setPedidoRastreado] = useState<any | null>(null);
   const [buscandoRastreo, setBuscandoRastreo] = useState<boolean>(false);
   const [errorRastreo, setErrorRastreo] = useState<string | null>(null);
 
-  // Estado de la Presentación Interactiva de Cuidado
   const [slideActivo, setSlideActivo] = useState<number>(0);
   const [modoDemoEncendido, setModoDemoEncendido] = useState<"IDEAL" | "TUNEL">("IDEAL");
   const [horasPorDiaSim, setHorasPorDiaSim] = useState<number>(3);
   const [gramosCeraSim, setGramosCeraSim] = useState<number>(150);
 
-  // Checkout: Cliente, Empaque y Dedicatoria
   const [clienteNombre, setClienteNombre] = useState<string>("");
   const [clienteWhatsapp, setClienteWhatsapp] = useState<string>("");
   const [medioPagoPreferido, setMedioPagoPreferido] = useState<string>("Nequi");
@@ -210,7 +202,6 @@ export default function TiendaEterniaPage() {
           localStorage.setItem("eternia_catalogo_v1", JSON.stringify(data));
         }
 
-        // Sincronizar stock real de aromas desde Supabase
         const { data: cfgAromas } = await supabase
           .from("pedidos")
           .select("origen")
@@ -311,7 +302,6 @@ export default function TiendaEterniaPage() {
   const abono50Carrito = useMemo(() => redondearCentena(valorTotalCarrito * 0.5), [valorTotalCarrito]);
   const fechaEntregaEstimada = useMemo(() => calcularFechaEntregaHabil(undefined, 5), []);
 
-  // Buscar pedido en vivo para el Mapa de Seguimiento
   const consultarSeguimientoPedido = async (e?: React.FormEvent, codigoDirecto?: string) => {
     if (e) e.preventDefault();
     const codigoLimpio = (codigoDirecto || codigoRastreoInput).trim().toUpperCase();
@@ -379,9 +369,26 @@ export default function TiendaEterniaPage() {
       const pabTotal = carrito.reduce((acc, it) => acc + it.producto.pabilo_cm * it.cantidad, 0);
       const hoyStr = new Date().toISOString().split("T")[0];
 
-      const origenCodificado = incluirDedicatoria && dedicatoriaMensaje.trim()
-        ? `Tienda Web || Empaque: ${empaqueElegido} || Para: ${dedicatoriaPara.trim() || "Alguien especial"} || De: ${dedicatoriaDe.trim() || clienteNombre.trim()} || Msg: ${dedicatoriaMensaje.trim()}`
-        : `Tienda Web || Empaque: ${empaqueElegido}`;
+      const itemsDetallados: PedidoItemDetalle[] = carrito.map((it) => ({
+        producto_nombre: productoLlevaAroma(it.producto)
+          ? `${it.producto.nombre} (Aroma: ${it.aroma})`
+          : `${it.producto.nombre} (Sin aroma)`,
+        cantidad: it.cantidad,
+        precio_unitario: it.producto.precio_catalogo,
+        costo_unitario: it.producto.costo_produccion,
+        cera_unitaria_g: it.producto.cera_g,
+        fragancia_unitaria_ml: it.producto.fragancia_ml,
+        pabilo_unitario_cm: it.producto.pabilo_cm,
+        tipo_empaque: it.producto.tipo_empaque,
+        subtotal: it.producto.precio_catalogo * it.cantidad,
+      }));
+
+      // DOBLE BLINDAJE: Guardamos también los items serializados dentro de origen para que SIEMPRE aparezcan en el recibo y en la tabla
+      const itemsJsonRespaldo = JSON.stringify(itemsDetallados);
+      const origenCodificado =
+        incluirDedicatoria && dedicatoriaMensaje.trim()
+          ? `Tienda Web || Empaque: ${empaqueElegido} || Para: ${dedicatoriaPara.trim() || "Alguien especial"} || De: ${dedicatoriaDe.trim() || clienteNombre.trim()} || Msg: ${dedicatoriaMensaje.trim()} || ItemsJSON: ${itemsJsonRespaldo}`
+          : `Tienda Web || Empaque: ${empaqueElegido} || ItemsJSON: ${itemsJsonRespaldo}`;
 
       const nuevoPedido: PedidoCompleto = {
         id: `ped-${Date.now()}`,
@@ -403,19 +410,7 @@ export default function TiendaEterniaPage() {
         origen: origenCodificado,
         fecha_pedido: hoyStr,
         fecha_entrega: fechaEntregaEstimada,
-        items: carrito.map((it) => ({
-          producto_nombre: productoLlevaAroma(it.producto)
-            ? `${it.producto.nombre} (Aroma: ${it.aroma})`
-            : `${it.producto.nombre} (Sin aroma)`,
-          cantidad: it.cantidad,
-          precio_unitario: it.producto.precio_catalogo,
-          costo_unitario: it.producto.costo_produccion,
-          cera_unitaria_g: it.producto.cera_g,
-          fragancia_unitaria_ml: it.producto.fragancia_ml,
-          pabilo_unitario_cm: it.producto.pabilo_cm,
-          tipo_empaque: it.producto.tipo_empaque,
-          subtotal: it.producto.precio_catalogo * it.cantidad,
-        })),
+        items: itemsDetallados,
       };
 
       if (isSupabaseConfigured) {
@@ -445,7 +440,8 @@ export default function TiendaEterniaPage() {
           .single();
 
         if (!errPed && pedInsertado) {
-          await supabase.from("pedido_items").insert(
+          // Intento 1 en pedido_items
+          const { error: errItems1 } = await supabase.from("pedido_items").insert(
             nuevoPedido.items.map((item: PedidoItemDetalle) => ({
               pedido_id: pedInsertado.id,
               producto_nombre: item.producto_nombre,
@@ -459,6 +455,23 @@ export default function TiendaEterniaPage() {
               subtotal: item.subtotal,
             }))
           );
+
+          // Si la columna de pabilo tiene otro nombre en Supabase, reintenta con las columnas universales
+          if (errItems1) {
+            await supabase.from("pedido_items").insert(
+              nuevoPedido.items.map((item: PedidoItemDetalle) => ({
+                pedido_id: pedInsertado.id,
+                producto_nombre: item.producto_nombre,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio_unitario,
+                costo_unitario: item.costo_unitario,
+                cera_unitaria_g: item.cera_unitaria_g,
+                fragancia_unitaria_ml: item.fragancia_unitaria_ml,
+                tipo_empaque: item.tipo_empaque,
+                subtotal: item.subtotal,
+              }))
+            );
+          }
         } else {
           alert(`Hubo un problema al registrar el pedido en la nube: ${errPed?.message || "Intenta de nuevo"}`);
           return;
@@ -498,7 +511,6 @@ export default function TiendaEterniaPage() {
     }
   };
 
-  // Cálculo para el Simulador de Duración en la guía de cuidado
   const calculoSimuladorDuracion = useMemo(() => {
     const horasTotales = Math.round(gramosCeraSim / 5.5);
     const diasDuracion = Math.max(1, Math.round(horasTotales / horasPorDiaSim));
@@ -511,7 +523,6 @@ export default function TiendaEterniaPage() {
         ✨ Velas artesanales hechas con amor y esencia natural • Personaliza tu aroma y tarjeta de regalo • Agendamos con el 50%
       </div>
 
-      {/* CABECERA CON BOTONES DE MAPA DE SEGUIMIENTO Y RITUAL DE CUIDADO */}
       <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur-md border-b border-[#E8D5CE] px-4 sm:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -555,7 +566,6 @@ export default function TiendaEterniaPage() {
         </div>
       </header>
 
-      {/* HERO DE BIENVENIDA */}
       <section className="bg-gradient-to-b from-[#F3ECE1] to-[#FAF6F0] pt-10 pb-8 px-4 sm:px-8 border-b border-[#E8D5CE]">
         <div className="max-w-7xl mx-auto text-center space-y-4">
           <span className="inline-block bg-[#E8D5CE]/60 text-[#3B2B23] text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-widest font-serif">
@@ -595,7 +605,6 @@ export default function TiendaEterniaPage() {
         </div>
       </section>
 
-      {/* CATÁLOGO CON SELECTOR DE AROMA CONECTADO A STOCK */}
       <main className="max-w-7xl mx-auto w-full flex-1 px-4 sm:px-8 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {productosFiltrados.map((prod: ProductoVela) => {
@@ -628,7 +637,6 @@ export default function TiendaEterniaPage() {
                     {prod.descripcion || `Presentación en ${prod.tipo_empaque}. Hecha a mano con cera vegetal.`}
                   </p>
 
-                  {/* SELECTOR DE FRAGANCIA INTELIGENTE SEGÚN EL PRODUCTO */}
                   <div className="mt-4 pt-3 border-t border-[#FAF6F0]">
                     {admiteAroma ? (
                       <div>
@@ -697,7 +705,6 @@ export default function TiendaEterniaPage() {
         </div>
       </main>
 
-      {/* BARRA FLOTANTE INFERIOR DEL CARRITO */}
       {totalUnidades > 0 && !carritoAbierto && (
         <div className="fixed bottom-6 inset-x-4 z-40 max-w-lg mx-auto">
           <button
@@ -716,7 +723,6 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      {/* DRAWER DEL CARRITO CON SELECTOR DE EMPAQUE Y TARJETA DEDICATORIA */}
       {carritoAbierto && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end">
           <div className="bg-[#FAF6F0] w-full max-w-md h-full flex flex-col shadow-2xl border-l border-[#E8D5CE]">
@@ -794,7 +800,6 @@ export default function TiendaEterniaPage() {
                     );
                   })}
 
-                  {/* SELECTOR DE PRESENTACIÓN Y TARJETA DEDICATORIA */}
                   <div className="bg-white p-4 rounded-2xl border border-[#C89D7C] space-y-3 shadow-xs">
                     <div className="flex items-center gap-2 text-xs font-serif font-bold text-[#3B2B23]">
                       <Gift className="w-4 h-4 text-[#C89D7C]" />
@@ -825,7 +830,7 @@ export default function TiendaEterniaPage() {
                     </label>
 
                     {incluirDedicatoria && (
-                      <div className="space-y-2.5 pt-2 border-t border-[#F3ECE1] animate-fadeIn">
+                      <div className="space-y-2.5 pt-2 border-t border-[#F3ECE1]">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="block text-[10px] font-bold text-[#7A685F] mb-0.5">Para quién:</label>
@@ -863,7 +868,6 @@ export default function TiendaEterniaPage() {
                     )}
                   </div>
 
-                  {/* RESUMEN FINANCIERO */}
                   <div className="bg-[#F3ECE1] p-4 rounded-2xl border border-[#E8D5CE] space-y-2 text-sm">
                     <div className="flex justify-between font-bold text-base font-serif text-[#3B2B23]">
                       <span>Valor Total del Pedido:</span>
@@ -954,9 +958,6 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      {/* ================================================================= */}
-      {/* MODAL 1: MAPA DE SEGUIMIENTO DEL PEDIDO EN TIEMPO REAL CON ANIMACIÓN */}
-      {/* ================================================================= */}
       {modalMapaAbierto && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF6F0] max-w-2xl w-full rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden my-8">
@@ -1021,7 +1022,6 @@ export default function TiendaEterniaPage() {
                       </div>
                     </div>
 
-                    {/* BARRA DE PROGRESO ANIMADA */}
                     <div className="w-full h-3 bg-[#E8D5CE] rounded-full overflow-hidden p-0.5">
                       <div
                         className="h-full bg-gradient-to-r from-[#3B2B23] via-[#C89D7C] to-[#196F3D] rounded-full transition-all duration-1000 ease-out"
@@ -1029,7 +1029,6 @@ export default function TiendaEterniaPage() {
                       />
                     </div>
 
-                    {/* LÍNEA DE TIEMPO INTERACTIVA */}
                     <div className="space-y-3">
                       {ETAPAS_MAPA.map((etapa, index) => {
                         const IconoEtapa = etapa.icono;
@@ -1084,9 +1083,6 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
-      {/* ================================================================= */}
-      {/* MODAL 2: PRESENTACIÓN INTERACTIVA DE CUIDADO DE VELAS             */}
-      {/* ================================================================= */}
       {modalCuidadoAbierto && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF6F0] max-w-3xl w-full rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden my-8">
@@ -1106,7 +1102,6 @@ export default function TiendaEterniaPage() {
             </div>
 
             <div className="p-6 sm:p-8 space-y-6">
-              {/* NAVEGADOR DE DIAPOSITIVAS */}
               <div className="flex items-center justify-between gap-2 border-b border-[#E8D5CE] pb-4">
                 {SLIDES_CUIDADO.map((sl, idx) => (
                   <button
@@ -1121,7 +1116,6 @@ export default function TiendaEterniaPage() {
                 ))}
               </div>
 
-              {/* CONTENIDO DE LA DIAPOSITIVA ACTIVA */}
               <div className="bg-white p-6 rounded-2xl border border-[#E8D5CE] space-y-4 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C89D7C] block">
                   {SLIDES_CUIDADO[slideActivo].badge}
@@ -1140,7 +1134,6 @@ export default function TiendaEterniaPage() {
                   </div>
                 </div>
 
-                {/* SIMULADOR INTERACTIVO DE PISCINA DE CERA Y CALCULADORA */}
                 <div className="mt-4 pt-4 border-t border-[#F3ECE1] grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                   <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
                     <div className="flex items-center justify-between">
@@ -1187,7 +1180,6 @@ export default function TiendaEterniaPage() {
                     </div>
                   </div>
 
-                  {/* CALCULADORA INTERACTIVA DE DURACIÓN */}
                   <div className="bg-[#FAF6F0] p-4 rounded-xl border border-[#E8D5CE] space-y-3">
                     <h5 className="text-xs font-serif font-bold text-[#3B2B23] flex items-center gap-1.5">
                       <Scissors className="w-3.5 h-3.5 text-[#C89D7C]" /> Calculadora de Duración de tu Vela
@@ -1228,7 +1220,6 @@ export default function TiendaEterniaPage() {
                 </div>
               </div>
 
-              {/* CONTROLES ANTERIOR / SIGUIENTE */}
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => setSlideActivo((prev) => Math.max(0, prev - 1))}

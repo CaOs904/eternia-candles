@@ -26,6 +26,7 @@ import {
   ProductoVela,
   InsumoItem,
   PedidoCompleto,
+  PedidoItemDetalle,
   formatoCOP,
   redondearCentena,
   calcularCosteoVela,
@@ -67,6 +68,7 @@ function extraerDetallesOrigenAdmin(origenRaw?: string) {
     para: "",
     de: "",
     mensaje: "",
+    itemsRespaldo: [] as PedidoItemDetalle[],
   };
   if (!origenRaw || !origenRaw.includes("||")) return base;
 
@@ -80,8 +82,76 @@ function extraerDetallesOrigenAdmin(origenRaw?: string) {
       base.mensaje = p.replace("Msg:", "").trim();
       if (base.mensaje) base.tieneDedicatoria = true;
     }
+    if (p.startsWith("ItemsJSON:")) {
+      try {
+        const jsonStr = p.replace("ItemsJSON:", "").trim();
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed)) base.itemsRespaldo = parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
   });
   return base;
+}
+
+// Si un pedido anterior (como PED-007) se guardó antes del blindaje sin filas en pedido_items, reconstruye el producto según su valor y cera
+function reconstruirItemsSiVacio(p: any, catalogo: ProductoVela[]): PedidoItemDetalle[] {
+  const valor = Number(p.valor_total) || 0;
+  if (valor <= 0) return [];
+
+  const cera = Number(p.cera_total_g) || 0;
+  const prodExacto =
+    catalogo.find((c) => c.precio_catalogo === valor && (cera === 0 || c.cera_g === cera)) ||
+    catalogo.find((c) => c.precio_catalogo === valor);
+
+  if (prodExacto) {
+    return [
+      {
+        producto_nombre: prodExacto.nombre,
+        cantidad: 1,
+        precio_unitario: prodExacto.precio_catalogo,
+        costo_unitario: prodExacto.costo_produccion,
+        cera_unitaria_g: prodExacto.cera_g,
+        fragancia_unitaria_ml: prodExacto.fragancia_ml,
+        pabilo_unitario_cm: prodExacto.pabilo_cm,
+        tipo_empaque: prodExacto.tipo_empaque,
+        subtotal: valor,
+      },
+    ];
+  }
+
+  const prodDivisible = catalogo.find((c) => c.precio_catalogo > 0 && valor % c.precio_catalogo === 0);
+  if (prodDivisible) {
+    const cant = Math.max(1, Math.round(valor / prodDivisible.precio_catalogo));
+    return [
+      {
+        producto_nombre: prodDivisible.nombre,
+        cantidad: cant,
+        precio_unitario: prodDivisible.precio_catalogo,
+        costo_unitario: prodDivisible.costo_produccion,
+        cera_unitaria_g: prodDivisible.cera_g,
+        fragancia_unitaria_ml: prodDivisible.fragancia_ml,
+        pabilo_unitario_cm: prodDivisible.pabilo_cm,
+        tipo_empaque: prodDivisible.tipo_empaque,
+        subtotal: valor,
+      },
+    ];
+  }
+
+  return [
+    {
+      producto_nombre: `Pedido de Velas Artesanales (${cera > 0 ? `${cera}g cera` : "Eternia"})`,
+      cantidad: 1,
+      precio_unitario: valor,
+      costo_unitario: Number(p.costo_total) || 0,
+      cera_unitaria_g: cera,
+      fragancia_unitaria_ml: Number(p.fragancia_total_ml) || 0,
+      pabilo_unitario_cm: Number(p.pabilo_total_cm) || 0,
+      tipo_empaque: "Clásico Artesanal",
+      subtotal: valor,
+    },
+  ];
 }
 
 export default function AdminEterniaPage() {
@@ -100,7 +170,6 @@ export default function AdminEterniaPage() {
   const [nuevoAromaNombre, setNuevoAromaNombre] = useState<string>("");
   const [nuevoAromaNotas, setNuevoAromaNotas] = useState<string>("");
 
-  // Cotizador POS
   const [posProductoId, setPosProductoId] = useState<string>(CATALOGO_INICIAL_VELAS[0].id);
   const [posCantidad, setPosCantidad] = useState<number>(1);
   const [posItems, setPosItems] = useState<{ producto: ProductoVela; cantidad: number }[]>([]);
@@ -111,7 +180,6 @@ export default function AdminEterniaPage() {
 
   const [codigoReciboSeleccionado, setCodigoReciboSeleccionado] = useState<string>("PED-001");
 
-  // Creador de Moldes
   const [nuevoNombreVela, setNuevoNombreVela] = useState<string>("");
   const [nuevaCatVela, setNuevaCatVela] = useState<ProductoVela["categoria"]>("NAVIDAD");
   const [nuevaCantVelas, setNuevaCantVelas] = useState<number>(1);
@@ -121,7 +189,6 @@ export default function AdminEterniaPage() {
   const [nuevoPrecioCatManual, setNuevoPrecioCatManual] = useState<number>(0);
   const [nuevaDescVela, setNuevaDescVela] = useState<string>("");
 
-  // Creador de Vasijas
   const [nombreNuevaVasija, setNombreNuevaVasija] = useState<string>("");
   const [vasosYeso, setVasosYeso] = useState<number>(3);
   const [vasosCemento, setVasosCemento] = useState<number>(1);
@@ -174,6 +241,20 @@ export default function AdminEterniaPage() {
   useEffect(() => {
     if (!sesionVerificada) return;
 
+    let catalogoParaCalculo = CATALOGO_INICIAL_VELAS;
+    const catLocal = localStorage.getItem("eternia_catalogo_v1");
+    if (catLocal) {
+      try {
+        const parsedCat = JSON.parse(catLocal);
+        if (Array.isArray(parsedCat) && parsedCat.length > 0) {
+          catalogoParaCalculo = parsedCat;
+          setProductos(parsedCat);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     async function cargarPedidosDesdeNube() {
       if (isSupabaseConfigured) {
         const { data: pedData, error } = await supabase
@@ -196,38 +277,51 @@ export default function AdminEterniaPage() {
           }
 
           const pedidosReales = pedData.filter((p: any) => p.codigo !== "CFG-AROMAS");
-          const pedidosMapeados: PedidoCompleto[] = pedidosReales.map((p: any) => ({
-            id: p.id,
-            codigo: p.codigo,
-            cliente_nombre: p.cliente_nombre,
-            cliente_whatsapp: p.cliente_whatsapp,
-            aprobado: p.aprobado,
-            descuento_pct: p.descuento_pct || 0,
-            valor_total: p.valor_total,
-            costo_total: p.costo_total,
-            abono_50: p.abono_50,
-            dinero_recibido: p.dinero_recibido || 0,
-            ganancia_libre: p.ganancia_libre,
-            cera_total_g: p.cera_total_g,
-            fragancia_total_ml: p.fragancia_total_ml,
-            pabilo_total_cm: p.pabilo_total_cm,
-            medio_pago: p.medio_pago,
-            estado: p.estado,
-            origen: p.origen,
-            fecha_pedido: p.fecha_pedido,
-            fecha_entrega: p.fecha_entrega,
-            items: (p.pedido_items || []).map((it: any) => ({
+          const pedidosMapeados: PedidoCompleto[] = pedidosReales.map((p: any) => {
+            const infoOrigen = extraerDetallesOrigenAdmin(p.origen);
+            const itemsDeTabla: PedidoItemDetalle[] = (p.pedido_items || []).map((it: any) => ({
               producto_nombre: it.producto_nombre,
               cantidad: it.cantidad,
               precio_unitario: it.precio_unitario,
               costo_unitario: it.costo_unitario,
               cera_unitaria_g: it.cera_unitaria_g,
               fragancia_unitaria_ml: it.fragancia_unitaria_ml,
-              pabilo_unitario_cm: it.pabilo_unitaria_cm,
-              tipo_empaque: it.tipo_empaque,
+              pabilo_unitario_cm: it.pabilo_unitario_cm ?? it.pabilo_unitaria_cm ?? 0,
+              tipo_empaque: it.tipo_empaque || "Clásico Artesanal",
               subtotal: it.subtotal,
-            })),
-          }));
+            }));
+
+            const itemsFinales =
+              itemsDeTabla.length > 0
+                ? itemsDeTabla
+                : infoOrigen.itemsRespaldo.length > 0
+                ? infoOrigen.itemsRespaldo
+                : reconstruirItemsSiVacio(p, catalogoParaCalculo);
+
+            return {
+              id: p.id,
+              codigo: p.codigo,
+              cliente_nombre: p.cliente_nombre,
+              cliente_whatsapp: p.cliente_whatsapp,
+              aprobado: p.aprobado,
+              descuento_pct: p.descuento_pct || 0,
+              valor_total: p.valor_total,
+              costo_total: p.costo_total,
+              abono_50: p.abono_50,
+              dinero_recibido: p.dinero_recibido || 0,
+              ganancia_libre: p.ganancia_libre,
+              cera_total_g: p.cera_total_g,
+              fragancia_total_ml: p.fragancia_total_ml,
+              pabilo_total_cm: p.pabilo_total_cm,
+              medio_pago: p.medio_pago,
+              estado: p.estado,
+              origen: p.origen,
+              fecha_pedido: p.fecha_pedido,
+              fecha_entrega: p.fecha_entrega,
+              items: itemsFinales,
+            };
+          });
+
           setPedidos(pedidosMapeados);
           localStorage.setItem("eternia_pedidos_v1", JSON.stringify(pedidosMapeados));
           if (pedidosMapeados.length > 0) {
@@ -254,10 +348,6 @@ export default function AdminEterniaPage() {
     const aromasLocal = localStorage.getItem("eternia_aromas_v1");
     if (aromasLocal) {
       try { setAromasStock(JSON.parse(aromasLocal)); } catch (e) { console.error(e); }
-    }
-    const catLocal = localStorage.getItem("eternia_catalogo_v1");
-    if (catLocal) {
-      try { setProductos(JSON.parse(catLocal)); } catch (e) { console.error(e); }
     }
     const empLocal = localStorage.getItem("eternia_empaques_v1");
     if (empLocal) {
@@ -403,6 +493,18 @@ export default function AdminEterniaPage() {
       return;
     }
     const hoy = new Date().toISOString().split("T")[0];
+    const itemsDetallados: PedidoItemDetalle[] = posItems.map((it) => ({
+      producto_nombre: it.producto.nombre,
+      cantidad: it.cantidad,
+      precio_unitario: it.producto.precio_catalogo,
+      costo_unitario: it.producto.costo_produccion,
+      cera_unitaria_g: it.producto.cera_g,
+      fragancia_unitaria_ml: it.producto.fragancia_ml,
+      pabilo_unitario_cm: it.producto.pabilo_cm,
+      tipo_empaque: it.producto.tipo_empaque,
+      subtotal: it.producto.precio_catalogo * it.cantidad,
+    }));
+
     const nuevo: PedidoCompleto = {
       id: `ped-${Date.now()}`,
       codigo: posCalculos.proximoCodigo,
@@ -420,20 +522,10 @@ export default function AdminEterniaPage() {
       pabilo_total_cm: posCalculos.pabCm,
       medio_pago: "Nequi",
       estado: posAprobado ? "En Producción (Abono 50%)" : "Pendiente Anticipo",
-      origen: "Admin POS || Empaque: Clásico Artesanal",
+      origen: `Admin POS || Empaque: Clásico Artesanal || ItemsJSON: ${JSON.stringify(itemsDetallados)}`,
       fecha_pedido: hoy,
       fecha_entrega: calcularFechaEntregaHabil(hoy, 5),
-      items: posItems.map((it) => ({
-        producto_nombre: it.producto.nombre,
-        cantidad: it.cantidad,
-        precio_unitario: it.producto.precio_catalogo,
-        costo_unitario: it.producto.costo_produccion,
-        cera_unitaria_g: it.producto.cera_g,
-        fragancia_unitaria_ml: it.producto.fragancia_ml,
-        pabilo_unitario_cm: it.producto.pabilo_cm,
-        tipo_empaque: it.producto.tipo_empaque,
-        subtotal: it.producto.precio_catalogo * it.cantidad,
-      })),
+      items: itemsDetallados,
     };
 
     if (isSupabaseConfigured) {
@@ -464,7 +556,7 @@ export default function AdminEterniaPage() {
 
       if (!errPed && pedInsertado) {
         nuevo.id = pedInsertado.id;
-        await supabase.from("pedido_items").insert(
+        const { error: errItems1 } = await supabase.from("pedido_items").insert(
           nuevo.items.map((item) => ({
             pedido_id: pedInsertado.id,
             producto_nombre: item.producto_nombre,
@@ -478,6 +570,21 @@ export default function AdminEterniaPage() {
             subtotal: item.subtotal,
           }))
         );
+        if (errItems1) {
+          await supabase.from("pedido_items").insert(
+            nuevo.items.map((item) => ({
+              pedido_id: pedInsertado.id,
+              producto_nombre: item.producto_nombre,
+              cantidad: item.cantidad,
+              precio_unitario: item.precio_unitario,
+              costo_unitario: item.costo_unitario,
+              cera_unitaria_g: item.cera_unitaria_g,
+              fragancia_unitaria_ml: item.fragancia_unitaria_ml,
+              tipo_empaque: item.tipo_empaque,
+              subtotal: item.subtotal,
+            }))
+          );
+        }
       }
     }
 
@@ -805,7 +912,9 @@ export default function AdminEterniaPage() {
                         </td>
                         <td className="p-3 space-y-1">
                           {(ped.items || []).map((it, idx) => (
-                            <div key={idx}><strong>{it.cantidad}x</strong> {it.producto_nombre}</div>
+                            <div key={idx} className="text-[#3B2B23]">
+                              <strong>{it.cantidad}x</strong> {it.producto_nombre} <span className="text-[#7A685F]">({formatoCOP(it.subtotal)})</span>
+                            </div>
                           ))}
                           <div className="text-[10px] text-[#7A685F] pt-1">🎁 Empaque: <strong>{infoOrigen.empaque}</strong></div>
                           {infoOrigen.tieneDedicatoria && (
@@ -884,7 +993,7 @@ export default function AdminEterniaPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F3ECE1]">
-                      {pedidoReciboActual.items.map((it, i) => (
+                      {(pedidoReciboActual.items || []).map((it, i) => (
                         <tr key={i}>
                           <td className="py-2 font-serif font-bold text-[#3B2B23]">{it.producto_nombre}</td>
                           <td className="py-2 text-center font-bold">{it.cantidad}</td>
@@ -1044,7 +1153,6 @@ export default function AdminEterniaPage() {
         {/* PESTAÑA 5: STOCK DE AROMAS E INSUMOS */}
         {tabActiva === "INVENTARIO" && (
           <div className="no-print space-y-6">
-            {/* GESTOR DE STOCK DE FRAGANCIAS EN VIVO */}
             <div className="bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#F3ECE1] pb-3">
                 <div>
@@ -1109,7 +1217,6 @@ export default function AdminEterniaPage() {
               </div>
             </div>
 
-            {/* TABLA DE INSUMOS CON SEMÁFORO */}
             <div className="bg-white rounded-2xl border border-[#E8D5CE] overflow-x-auto shadow-xs">
               <div className="p-5 border-b border-[#F3ECE1]">
                 <h2 className="text-lg font-serif font-bold text-[#3B2B23]">Control de Insumos con Descuento Automático</h2>
