@@ -23,6 +23,8 @@ import {
   ChevronRight,
   ChevronLeft,
   PackageCheck,
+  Crown,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import {
@@ -49,6 +51,25 @@ interface ItemCarritoConAroma {
   aroma: string;
 }
 
+const PEDIDO_MINIMO_COP = 15000;
+
+const PRODUCTO_CLUB_ETERNIA: ProductoVela = {
+  id: "club-eternia-mes",
+  nombre: "Caja Club Eternia — La Vela del Mes (Edición Coleccionable)",
+  categoria: "TODA OCASIÓN",
+  cant_velas: 4,
+  cera_g: 260,
+  fragancia_ml: 26,
+  pabilo_cm: 35,
+  tipo_empaque: "Caja Boutique Club Eternia",
+  costo_produccion: 28000,
+  precio_justo: 70000,
+  precio_catalogo: 70000,
+  descripcion:
+    "Incluye: 1 Vela de Vaso Principal + Mini Combo de Moldes Pequeños + Wax Melts + Caja de Cerillas Eternia + Sachet Perfumado + Tarjeta Coleccionable Ilustrada del Mes.",
+  activo_en_tienda: true,
+};
+
 const AROMAS_DEFAULT_TIENDA: AromaTiendaItem[] = [
   { id: "vainilla", nombre: "Vainilla Francesa", notas: "Dulce, cálida y acogedora", disponible: true },
   { id: "frutos-rojos", nombre: "Frutos Rojos & Moras", notas: "Vibrante, frutal y envolvente", disponible: true },
@@ -71,36 +92,11 @@ const CATEGORIAS = [
 ];
 
 const ETAPAS_MAPA = [
-  {
-    id: "Pendiente Anticipo",
-    titulo: "1. Orden Agendada",
-    sub: "Esperando validación del 50% de anticipo",
-    icono: Clock,
-  },
-  {
-    id: "En Producción (Abono 50%)",
-    titulo: "2. Preparación de Moldes",
-    sub: "Selección de pabilo de algodón y alistamiento artesanal",
-    icono: Sparkles,
-  },
-  {
-    id: "Fundición y Vertido",
-    titulo: "3. Fundición y Esencias",
-    sub: "Vertido de cera vegetal a temperatura controlada y notas olfativas",
-    icono: Flame,
-  },
-  {
-    id: "Curado y Acabado",
-    titulo: "4. Reposo y Acabado",
-    sub: "Curado térmico para fijar el aroma y pulido de detalles",
-    icono: Heart,
-  },
-  {
-    id: "Listo para Entrega",
-    titulo: "5. Empacado Boutique",
-    sub: "¡Tu pedido está listo con su presentación y tarjeta!",
-    icono: PackageCheck,
-  },
+  { id: "Pendiente Anticipo", titulo: "1. Orden Agendada", sub: "Esperando validación del 50% de anticipo", icono: Clock },
+  { id: "En Producción (Abono 50%)", titulo: "2. Preparación de Moldes", sub: "Selección de pabilo de algodón y alistamiento artesanal", icono: Sparkles },
+  { id: "Fundición y Vertido", titulo: "3. Fundición y Esencias", sub: "Vertido de cera vegetal a temperatura controlada y notas olfativas", icono: Flame },
+  { id: "Curado y Acabado", titulo: "4. Reposo y Acabado", sub: "Curado térmico para fijar el aroma y pulido de detalles", icono: Heart },
+  { id: "Listo para Entrega", titulo: "5. Empacado Boutique", sub: "¡Tu pedido está listo con su presentación y tarjeta!", icono: PackageCheck },
 ];
 
 const SLIDES_CUIDADO = [
@@ -143,8 +139,132 @@ function productoLlevaAroma(prod: ProductoVela): boolean {
   return true;
 }
 
+// ============================================================================
+// COMPONENTE: GATICO CRIOLLO CHIBI (NARANJA Y BLANCO) COLGANDO CON ANIMACIÓN
+// ============================================================================
+function GaticoCriolloColgante({ asustado }: { asustado: boolean }) {
+  return (
+    <div
+      className={`pointer-events-none select-none transition-transform duration-300 ${
+        asustado ? "-translate-y-3 scale-115" : "group-hover:-translate-y-1"
+      }`}
+    >
+      <svg width="54" height="42" viewBox="0 0 64 50" fill="none" xmlns="http://www.w3.org/2000/svg" className="overflow-visible">
+        {/* Signo de sorpresa cuando se asusta al hacer clic */}
+        {asustado && (
+          <g className="animate-bounce">
+            <path d="M32 0 L32 7" stroke="#E67E22" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="32" cy="11" r="1.8" fill="#E67E22" />
+            <path d="M18 3 L21 8" stroke="#C89D7C" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M46 3 L43 8" stroke="#C89D7C" strokeWidth="2.2" strokeLinecap="round" />
+          </g>
+        )}
+
+        {/* Colita naranja y blanca asomada a la derecha */}
+        <path
+          d="M48 38 C56 35, 60 24, 54 18 C51 15, 48 20, 50 25"
+          stroke="#E67E22"
+          strokeWidth="5"
+          strokeLinecap="round"
+          fill="none"
+          className="origin-bottom-left animate-pulse"
+        />
+        <path d="M54 18 C52 16, 50 18, 50 20" stroke="#FFFFFF" strokeWidth="4.5" strokeLinecap="round" />
+
+        {/* Oreja Izquierda (Naranja criollo) */}
+        <path d="M15 24 L11 10 L24 17 Z" fill="#E67E22" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M15 21 L13 13 L21 17 Z" fill="#F5B7B1" />
+
+        {/* Oreja Derecha (Blanca con mancha naranja) */}
+        <path d="M49 24 L53 10 L40 17 Z" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M48 16 L53 10 L44 15 Z" fill="#D35400" />
+        <path d="M49 21 L51 13 L43 17 Z" fill="#F5B7B1" />
+
+        {/* Cabeza redonda Chibi (Blanca con parches naranjas atigrados) */}
+        <ellipse cx="32" cy="27" rx="18" ry="14" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2.2" />
+
+        {/* Parche Naranja en el lado izquierdo y frente */}
+        <path
+          d="M14 25 C14 17, 23 13, 31 14 C27 19, 23 24, 15 28 Z"
+          fill="#E67E22"
+        />
+        {/* Rayitas atigradas naranjas en la frente */}
+        <path d="M20 16 L24 19" stroke="#D35400" strokeWidth="2" strokeLinecap="round" />
+        <path d="M17 20 L21 22" stroke="#D35400" strokeWidth="2" strokeLinecap="round" />
+        <path d="M32 14 L32 18" stroke="#E67E22" strokeWidth="2.2" strokeLinecap="round" />
+
+        {/* Cachetes sonrojados cute */}
+        <ellipse cx="19" cy="30" rx="3" ry="1.8" fill="#F5B7B1" />
+        <ellipse cx="45" cy="30" rx="3" ry="1.8" fill="#F5B7B1" />
+
+        {/* Ojos: Si está asustado (> <), si está normal ojitos brillantes */}
+        {asustado ? (
+          <g stroke="#3B2B23" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 24 L26 27 L21 30" />
+            <path d="M43 24 L38 27 L43 30" />
+          </g>
+        ) : (
+          <g>
+            <circle cx="24" cy="26.5" r="2.8" fill="#3B2B23" />
+            <circle cx="23" cy="25.5" r="1" fill="#FFFFFF" />
+            <circle cx="40" cy="26.5" r="2.8" fill="#3B2B23" />
+            <circle cx="39" cy="25.5" r="1" fill="#FFFFFF" />
+          </g>
+        )}
+
+        {/* Naricita rosada y boquita :3 */}
+        <polygon points="30.5,29 33.5,29 32,31" fill="#E67E22" />
+        {asustado ? (
+          <circle cx="32" cy="33.5" r="2.2" fill="#922B21" />
+        ) : (
+          <path d="M29 32.5 Q30.5 34.5 32 32.5 Q33.5 34.5 35 32.5" stroke="#3B2B23" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+        )}
+
+        {/* Patitas blancas colgando del borde del botón */}
+        <ellipse
+          cx="21"
+          cy={asustado ? "38" : "42"}
+          rx="4.8"
+          ry="3.8"
+          fill="#FFFFFF"
+          stroke="#3B2B23"
+          strokeWidth="2"
+        />
+        <ellipse cx="21" cy={asustado ? "38" : "42"} rx="2" ry="1.3" fill="#F5B7B1" />
+
+        <ellipse
+          cx="43"
+          cy={asustado ? "38" : "42"}
+          rx="4.8"
+          ry="3.8"
+          fill="#FFFFFF"
+          stroke="#3B2B23"
+          strokeWidth="2"
+        />
+        <ellipse cx="43" cy={asustado ? "38" : "42"} rx="2" ry="1.3" fill="#F5B7B1" />
+      </svg>
+    </div>
+  );
+}
+
+// Sticker Chibi de Velita Feliz para estados y títulos
+function StickerVelitaChibi() {
+  return (
+    <svg width="28" height="32" viewBox="0 0 36 42" fill="none" className="inline-block shrink-0">
+      <path d="M18 2 C22 8, 23 13, 18 15 C13 13, 14 8, 18 2 Z" fill="#F59E0B" className="animate-pulse" />
+      <rect x="8" y="15" width="20" height="24" rx="6" fill="#FFFDF9" stroke="#C89D7C" strokeWidth="2" />
+      <circle cx="14" cy="26" r="1.8" fill="#3B2B23" />
+      <circle cx="22" cy="26" r="1.8" fill="#3B2B23" />
+      <ellipse cx="11.5" cy="28.5" rx="2" ry="1.2" fill="#F5B7B1" />
+      <ellipse cx="24.5" cy="28.5" rx="2" ry="1.2" fill="#F5B7B1" />
+      <path d="M16 29 Q18 31 20 29" stroke="#3B2B23" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function TiendaEterniaPage() {
   const [productos, setProductos] = useState<ProductoVela[]>(CATALOGO_INICIAL_VELAS);
+  const [idsOcultos, setIdsOcultos] = useState<string[]>([]);
   const [aromasStock, setAromasStock] = useState<AromaTiendaItem[]>(AROMAS_DEFAULT_TIENDA);
   const [aromaSeleccionadoPorProd, setAromaSeleccionadoPorProd] = useState<Record<string, string>>({});
 
@@ -152,6 +272,7 @@ export default function TiendaEterniaPage() {
   const [busqueda, setBusqueda] = useState<string>("");
   const [carrito, setCarrito] = useState<ItemCarritoConAroma[]>([]);
   const [carritoAbierto, setCarritoAbierto] = useState<boolean>(false);
+  const [gatoAsustado, setGatoAsustado] = useState<boolean>(false);
 
   const [modalMapaAbierto, setModalMapaAbierto] = useState<boolean>(false);
   const [modalCuidadoAbierto, setModalCuidadoAbierto] = useState<boolean>(false);
@@ -178,11 +299,26 @@ export default function TiendaEterniaPage() {
   const [enviando, setEnviando] = useState<boolean>(false);
   const [pedidoConfirmado, setPedidoConfirmado] = useState<string | null>(null);
 
+  const abrirCarritoConGatico = () => {
+    setGatoAsustado(true);
+    setTimeout(() => {
+      setCarritoAbierto(true);
+    }, 220);
+    setTimeout(() => {
+      setGatoAsustado(false);
+    }, 900);
+  };
+
   useEffect(() => {
     async function inicializarTienda() {
       const guardadoLocal = localStorage.getItem("eternia_catalogo_v1");
       if (guardadoLocal) {
         try { setProductos(JSON.parse(guardadoLocal)); } catch (err) { console.error(err); }
+      }
+
+      const ocultosLocal = localStorage.getItem("eternia_ocultos_v1");
+      if (ocultosLocal) {
+        try { setIdsOcultos(JSON.parse(ocultosLocal)); } catch (err) { console.error(err); }
       }
 
       const aromasLocal = localStorage.getItem("eternia_aromas_v1");
@@ -202,21 +338,32 @@ export default function TiendaEterniaPage() {
           localStorage.setItem("eternia_catalogo_v1", JSON.stringify(data));
         }
 
-        const { data: cfgAromas } = await supabase
+        const { data: cfgs } = await supabase
           .from("pedidos")
-          .select("origen")
-          .eq("codigo", "CFG-AROMAS")
-          .maybeSingle();
+          .select("codigo, origen")
+          .in("codigo", ["CFG-AROMAS", "CFG-OCULTOS"]);
 
-        if (cfgAromas && cfgAromas.origen) {
-          try {
-            const listaNube = JSON.parse(cfgAromas.origen);
-            if (Array.isArray(listaNube) && listaNube.length > 0) {
-              setAromasStock(listaNube);
-              localStorage.setItem("eternia_aromas_v1", JSON.stringify(listaNube));
-            }
-          } catch (e) {
-            console.error(e);
+        if (cfgs && cfgs.length > 0) {
+          const filaAromas = cfgs.find((c: any) => c.codigo === "CFG-AROMAS");
+          if (filaAromas && filaAromas.origen) {
+            try {
+              const listaNube = JSON.parse(filaAromas.origen);
+              if (Array.isArray(listaNube) && listaNube.length > 0) {
+                setAromasStock(listaNube);
+                localStorage.setItem("eternia_aromas_v1", JSON.stringify(listaNube));
+              }
+            } catch (e) { console.error(e); }
+          }
+
+          const filaOcultos = cfgs.find((c: any) => c.codigo === "CFG-OCULTOS");
+          if (filaOcultos && filaOcultos.origen) {
+            try {
+              const listaOcultos = JSON.parse(filaOcultos.origen);
+              if (Array.isArray(listaOcultos)) {
+                setIdsOcultos(listaOcultos);
+                localStorage.setItem("eternia_ocultos_v1", JSON.stringify(listaOcultos));
+              }
+            } catch (e) { console.error(e); }
           }
         }
       }
@@ -246,20 +393,26 @@ export default function TiendaEterniaPage() {
     return primerAromaDisponible;
   };
 
+  // Filtra los productos ocultos desde el Admin (ej. momias o fantasmas sueltos)
   const productosFiltrados = useMemo(() => {
     return productos.filter((p: ProductoVela) => {
       if (p.precio_catalogo <= 0) return false;
+      if (p.activo_en_tienda === false) return false;
+      if (idsOcultos.includes(p.id)) return false;
       const coincideCat = categoriaActiva === "TODAS" || p.categoria === categoriaActiva;
       const coincideBusq =
         p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         (p.descripcion || "").toLowerCase().includes(busqueda.toLowerCase());
       return coincideCat && coincideBusq;
     });
-  }, [productos, categoriaActiva, busqueda]);
+  }, [productos, idsOcultos, categoriaActiva, busqueda]);
 
-  const agregarAlCarrito = (producto: ProductoVela, cant: number = 1) => {
-    const aromaFinal = obtenerAromaDeProducto(producto);
+  const agregarAlCarrito = (producto: ProductoVela, cant: number = 1, aromaForzado?: string) => {
+    const aromaFinal = aromaForzado || obtenerAromaDeProducto(producto);
     const clave = `${producto.id}__${aromaFinal}`;
+
+    setGatoAsustado(true);
+    setTimeout(() => setGatoAsustado(false), 650);
 
     setCarrito((prev) => {
       const existe = prev.find((item) => item.clave === clave);
@@ -301,6 +454,7 @@ export default function TiendaEterniaPage() {
 
   const abono50Carrito = useMemo(() => redondearCentena(valorTotalCarrito * 0.5), [valorTotalCarrito]);
   const fechaEntregaEstimada = useMemo(() => calcularFechaEntregaHabil(undefined, 5), []);
+  const cumpleMinimoPedido = valorTotalCarrito >= PEDIDO_MINIMO_COP;
 
   const consultarSeguimientoPedido = async (e?: React.FormEvent, codigoDirecto?: string) => {
     if (e) e.preventDefault();
@@ -319,7 +473,7 @@ export default function TiendaEterniaPage() {
           .ilike("codigo", codigoLimpio)
           .maybeSingle();
 
-        if (!error && data && data.codigo !== "CFG-AROMAS") {
+        if (!error && data && !String(data.codigo).startsWith("CFG-")) {
           setPedidoRastreado(data);
           setBuscandoRastreo(false);
           return;
@@ -337,6 +491,10 @@ export default function TiendaEterniaPage() {
   const confirmarPedidoWhatsApp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (carrito.length === 0) return;
+    if (!cumpleMinimoPedido) {
+      alert(`El pedido mínimo de taller es de ${formatoCOP(PEDIDO_MINIMO_COP)}. Agrega otra velita o un combo para continuar.`);
+      return;
+    }
     if (!clienteNombre.trim() || !clienteWhatsapp.trim()) {
       alert("Por favor escribe tu nombre y tu número de WhatsApp para agendar tu pedido.");
       return;
@@ -349,7 +507,7 @@ export default function TiendaEterniaPage() {
         const { data: listaCodigos, error: errCodigos } = await supabase.from("pedidos").select("codigo");
         if (!errCodigos && listaCodigos && listaCodigos.length > 0) {
           const numeros = listaCodigos
-            .filter((p: { codigo?: string }) => p.codigo !== "CFG-AROMAS")
+            .filter((p: { codigo?: string }) => !String(p.codigo || "").startsWith("CFG-"))
             .map((p: { codigo?: string }) => {
               const partes = String(p.codigo || "").split("-");
               const num = parseInt(partes[1], 10);
@@ -383,7 +541,6 @@ export default function TiendaEterniaPage() {
         subtotal: it.producto.precio_catalogo * it.cantidad,
       }));
 
-      // DOBLE BLINDAJE: Guardamos también los items serializados dentro de origen para que SIEMPRE aparezcan en el recibo y en la tabla
       const itemsJsonRespaldo = JSON.stringify(itemsDetallados);
       const origenCodificado =
         incluirDedicatoria && dedicatoriaMensaje.trim()
@@ -440,7 +597,6 @@ export default function TiendaEterniaPage() {
           .single();
 
         if (!errPed && pedInsertado) {
-          // Intento 1 en pedido_items
           const { error: errItems1 } = await supabase.from("pedido_items").insert(
             nuevoPedido.items.map((item: PedidoItemDetalle) => ({
               pedido_id: pedInsertado.id,
@@ -456,7 +612,6 @@ export default function TiendaEterniaPage() {
             }))
           );
 
-          // Si la columna de pabilo tiene otro nombre en Supabase, reintenta con las columnas universales
           if (errItems1) {
             await supabase.from("pedido_items").insert(
               nuevoPedido.items.map((item: PedidoItemDetalle) => ({
@@ -478,29 +633,41 @@ export default function TiendaEterniaPage() {
         }
       }
 
+      // Emojis 100% compatibles en formato Unicode Escape para que WhatsApp jamás muestre rombos ()
+      const E_BRILLO = "\u2728"; // ✨
+      const E_GATO = "\uD83D\uDC31"; // 🐱
+      const E_PIN = "\uD83D\uDCCC"; // 📌
+      const E_USER = "\uD83D\uDC64"; // 👤
+      const E_REGALO = "\uD83C\uDF81"; // 🎁
+      const E_CARTA = "\uD83D\uDC8C"; // 💌
+      const E_ESTRELLA = "\u2B50"; // ⭐
+      const E_DINERO = "\uD83D\uDCB0"; // 💰
+      const E_CHECK = "\u2705"; // ✅
+      const E_CALENDARIO = "\uD83D\uDCC5"; // 📅
+
       const lineasProductos = nuevoPedido.items
-        .map((it) => `• ${it.cantidad}x ${it.producto_nombre} (${formatoCOP(it.subtotal)})`)
+        .map((it) => `${E_ESTRELLA} ${it.cantidad}x ${it.producto_nombre} (${formatoCOP(it.subtotal)})`)
         .join("\n");
 
       const bloqueDedicatoriaWA =
         incluirDedicatoria && dedicatoriaMensaje.trim()
-          ? `\n💌 *Tarjeta Dedicatoria:*\nPara: ${dedicatoriaPara || "Especial"} | De: ${dedicatoriaDe || clienteNombre}\n"${dedicatoriaMensaje.trim()}"\n`
+          ? `\n${E_CARTA} *Tarjeta Dedicatoria:*\nPara: ${dedicatoriaPara || "Especial"} | De: ${dedicatoriaDe || clienteNombre}\n"${dedicatoriaMensaje.trim()}"\n`
           : "";
 
       const textoWA =
-        `✨ *NUEVO PEDIDO ETERNIA CANDLES* ✨\n` +
-        `📌 *Código de Seguimiento:* ${codigoPedido}\n` +
-        `👤 *Cliente:* ${clienteNombre.trim()}\n` +
-        `🎁 *Empaque:* ${empaqueElegido}\n` +
+        `${E_BRILLO} *NUEVO PEDIDO ETERNIA CANDLES* ${E_GATO}\n\n` +
+        `${E_PIN} *Codigo de Seguimiento:* ${codigoPedido}\n` +
+        `${E_USER} *Cliente:* ${clienteNombre.trim()}\n` +
+        `${E_REGALO} *Empaque:* ${empaqueElegido}\n` +
         `${bloqueDedicatoriaWA}\n` +
-        `🕯️ *Detalle del Pedido:*\n${lineasProductos}\n\n` +
-        `💰 *Valor Total:* ${formatoCOP(valorTotalCarrito)}\n` +
-        `✅ *Anticipo 50% (Para iniciar):* ${formatoCOP(abono50Carrito)}\n` +
-        `🏦 *Medio de Pago:* ${medioPagoPreferido}\n` +
-        `📅 *Entrega estimada:* ${fechaEntregaEstimada}\n\n` +
-        `¡Hola! Adjunto el comprobante del 50% de anticipo para agendar mi pedido.`;
+        `*Productos Solicitados:*\n${lineasProductos}\n\n` +
+        `${E_DINERO} *Valor Total:* ${formatoCOP(valorTotalCarrito)}\n` +
+        `${E_CHECK} *Anticipo 50% (Para iniciar):* ${formatoCOP(abono50Carrito)}\n` +
+        `*Medio de Pago:* ${medioPagoPreferido}\n` +
+        `${E_CALENDARIO} *Entrega estimada:* ${fechaEntregaEstimada}\n\n` +
+        `Hola! Adjunto el comprobante del 50% de anticipo para agendar mi pedido.`;
 
-      const urlWA = `https://wa.me/573132019146?text=${encodeURIComponent(textoWA)}`;
+      const urlWA = `https://api.whatsapp.com/send?phone=573132019146&text=${encodeURIComponent(textoWA)}`;
       setPedidoConfirmado(codigoPedido);
       setCodigoRastreoInput(codigoPedido);
       setCarrito([]);
@@ -520,18 +687,22 @@ export default function TiendaEterniaPage() {
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#3B2B23] flex flex-col font-sans">
       <div className="bg-[#3B2B23] text-[#FAF6F0] text-xs sm:text-sm py-2 px-4 text-center font-medium tracking-wide">
-        ✨ Velas artesanales hechas con amor y esencia natural • Personaliza tu aroma y tarjeta de regalo • Agendamos con el 50%
+        ✨ Taller Eternia Bogotá • Velas artesanales con esencia natural • Pedido mínimo {formatoCOP(PEDIDO_MINIMO_COP)} • Agendamos con el 50%
       </div>
 
-      <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur-md border-b border-[#E8D5CE] px-4 sm:px-8 py-4">
+      {/* CABECERA CON EL GATICO CRIOLLO COLGANDO DEL BOTÓN MI PEDIDO */}
+      <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur-md border-b border-[#E8D5CE] px-4 sm:px-8 pt-6 pb-3.5">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#C89D7C] flex items-center justify-center text-white shadow-sm">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-serif tracking-widest font-bold text-[#3B2B23]">ETERNIA CANDLES</h1>
-              <p className="text-xs text-[#7A685F] italic tracking-wider font-serif">Handmade Aromas</p>
+              <h1 className="text-xl sm:text-2xl font-serif tracking-widest font-bold text-[#3B2B23] flex items-center gap-2">
+                <span>ETERNIA CANDLES</span>
+                <StickerVelitaChibi />
+              </h1>
+              <p className="text-xs text-[#7A685F] italic tracking-wider font-serif">Handmade Aromas • Boutique & Cute Art</p>
             </div>
           </div>
 
@@ -552,31 +723,40 @@ export default function TiendaEterniaPage() {
               <span>Rastrear Pedido</span>
             </button>
 
-            <button
-              onClick={() => setCarritoAbierto(true)}
-              className="relative bg-[#3B2B23] hover:bg-[#523d32] text-[#FAF6F0] px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition cursor-pointer"
-            >
-              <ShoppingBag className="w-4 h-4 text-[#C89D7C]" />
-              <span>Mi Pedido</span>
-              {totalUnidades > 0 && (
-                <span className="bg-[#C89D7C] text-white text-xs font-bold px-2 py-0.5 rounded-full">{totalUnidades}</span>
-              )}
-            </button>
+            {/* BOTÓN DE CARRITO CON EL GATICO CRIOLLO CHIBI COLGANDO */}
+            <div className="relative group pt-2">
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20">
+                <GaticoCriolloColgante asustado={gatoAsustado} />
+              </div>
+              <button
+                onClick={abrirCarritoConGatico}
+                className="relative z-10 bg-[#3B2B23] hover:bg-[#523d32] text-[#FAF6F0] px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-md transition cursor-pointer border border-[#C89D7C]"
+              >
+                <ShoppingBag className="w-4 h-4 text-[#C89D7C]" />
+                <span>Mi Pedido</span>
+                {totalUnidades > 0 && (
+                  <span className="bg-[#E67E22] text-white text-xs font-bold px-2 py-0.5 rounded-full animate-bounce">
+                    {totalUnidades}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="bg-gradient-to-b from-[#F3ECE1] to-[#FAF6F0] pt-10 pb-8 px-4 sm:px-8 border-b border-[#E8D5CE]">
+      {/* HERO DE BIENVENIDA */}
+      <section className="bg-gradient-to-b from-[#F3ECE1] to-[#FAF6F0] pt-8 pb-8 px-4 sm:px-8 border-b border-[#E8D5CE]">
         <div className="max-w-7xl mx-auto text-center space-y-4">
-          <span className="inline-block bg-[#E8D5CE]/60 text-[#3B2B23] text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-widest font-serif">
-            Catálogo Oficial • @eternia.candles
+          <span className="inline-flex items-center gap-1.5 bg-[#E8D5CE]/60 text-[#3B2B23] text-xs font-semibold px-4 py-1.5 rounded-full uppercase tracking-widest font-serif">
+            <Sparkles className="w-3.5 h-3.5 text-[#C89D7C]" /> Catálogo Oficial • @eternia.candles
           </span>
           <h2 className="text-3xl sm:text-5xl font-serif font-medium text-[#3B2B23] max-w-3xl mx-auto leading-relaxed tracking-wide">
             Ilumina tus momentos con diseño, calma y tu aroma favorito
           </h2>
 
-          <div className="max-w-md mx-auto relative pt-4">
-            <Search className="w-4 h-4 text-[#7A685F] absolute left-3.5 top-7" />
+          <div className="max-w-md mx-auto relative pt-3">
+            <Search className="w-4 h-4 text-[#7A685F] absolute left-3.5 top-6.5" />
             <input
               type="text"
               value={busqueda}
@@ -586,7 +766,7 @@ export default function TiendaEterniaPage() {
             />
           </div>
 
-          <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pt-4 pb-1">
+          <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pt-3 pb-1">
             {CATEGORIAS.map((cat) => {
               const activa = categoriaActiva === cat;
               return (
@@ -605,11 +785,64 @@ export default function TiendaEterniaPage() {
         </div>
       </section>
 
+      {/* ================================================================= */}
+      {/* SECCIÓN EXCLUSIVA: CLUB ETERNIA — LA VELA DEL MES ($70.000 COP)   */}
+      {/* ================================================================= */}
+      <section className="max-w-7xl mx-auto w-full px-4 sm:px-8 pt-8">
+        <div className="bg-gradient-to-r from-[#3B2B23] via-[#4A352B] to-[#3B2B23] text-[#FAF6F0] rounded-3xl p-6 sm:p-8 border-2 border-[#C89D7C] shadow-xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative overflow-hidden">
+          <div className="lg:col-span-8 space-y-3">
+            <div className="inline-flex items-center gap-2 bg-[#C89D7C] text-[#3B2B23] text-[11px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full">
+              <Crown className="w-3.5 h-3.5" /> Membresía & Caja Sorpresa Mensual • Club Eternia
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-white">
+              Caja &ldquo;La Vela del Mes&rdquo; + Ticket Coleccionable Ilustrado
+            </h3>
+            <p className="text-xs sm:text-sm text-[#E8D5CE] leading-relaxed">
+              Recibe cada mes una experiencia sensorial irrepetible valorada en más de $95.000 por un precio especial de miembro:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#FAF6F0] pt-1">
+              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
+                🕯️ <strong>1 Vela de Vaso Principal</strong> con fragancia secreta exclusiva del mes.
+              </div>
+              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
+                ⛄ <strong>Mini Combo de Moldes Pequeños</strong> (Reno, Muñeco de Nieve, Estrella o Dúo).
+              </div>
+              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
+                🔥 <strong>Wax Melts + Cerillas Diseño Eternia</strong> o Sachet Perfumado para armario.
+              </div>
+              <div className="bg-white/10 px-3 py-2 rounded-xl border border-[#C89D7C]/40">
+                🎫 <strong>Tarjeta Coleccionable Cute</strong> (edición numerada estilo cine/Sanrio).
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 bg-[#FAF6F0] text-[#3B2B23] p-5 rounded-2xl border border-[#C89D7C] text-center space-y-3 shadow-lg">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#7A685F] block">
+              Edición Limitada del Mes
+            </span>
+            <div className="text-3xl font-extrabold font-serif text-[#3B2B23]">
+              {formatoCOP(PRODUCTO_CLUB_ETERNIA.precio_catalogo)}
+            </div>
+            <p className="text-[11px] text-[#7A685F]">
+              Agéndala con el 50% ({formatoCOP(35000)}) • Envío coordinado a tu medida
+            </p>
+            <button
+              onClick={() => agregarAlCarrito(PRODUCTO_CLUB_ETERNIA, 1, "Aroma Secreto del Mes")}
+              className="w-full bg-[#C89D7C] hover:bg-[#b58967] text-white font-bold py-3 px-5 rounded-xl text-xs uppercase tracking-wider shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" /> Quiero mi Caja Club Eternia
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* CATÁLOGO DE PRODUCTOS CON PÍLDORAS OLFATIVAS SENSORIALES */}
       <main className="max-w-7xl mx-auto w-full flex-1 px-4 sm:px-8 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {productosFiltrados.map((prod: ProductoVela) => {
             const admiteAroma = productoLlevaAroma(prod);
             const aromaActual = obtenerAromaDeProducto(prod);
+            const infoAromaObj = aromasStock.find((a) => a.nombre === aromaActual);
             const claveActual = `${prod.id}__${aromaActual}`;
             const itemEnCarrito = carrito.find((i) => i.clave === claveActual);
             const cantActual = itemEnCarrito ? itemEnCarrito.cantidad : 0;
@@ -637,31 +870,53 @@ export default function TiendaEterniaPage() {
                     {prod.descripcion || `Presentación en ${prod.tipo_empaque}. Hecha a mano con cera vegetal.`}
                   </p>
 
+                  {/* SELECTOR OLFATIVO SENSORIAL CON PÍLDORAS */}
                   <div className="mt-4 pt-3 border-t border-[#FAF6F0]">
                     {admiteAroma ? (
-                      <div>
-                        <label className="block text-[11px] font-bold text-[#3B2B23] mb-1.5 flex items-center gap-1">
-                          <Flame className="w-3.5 h-3.5 text-[#C89D7C]" /> Elige el Aroma de tu Vela:
-                        </label>
-                        <select
-                          value={aromaActual}
-                          onChange={(e) =>
-                            setAromaSeleccionadoPorProd((prev) => ({ ...prev, [prod.id]: e.target.value }))
-                          }
-                          className="w-full px-3 py-2 rounded-xl bg-[#FAF6F0] border border-[#C89D7C] text-xs font-bold text-[#3B2B23] focus:outline-none"
-                        >
-                          {aromasStock.map((ar) => (
-                            <option key={ar.id} value={ar.nombre} disabled={!ar.disponible}>
-                              {ar.disponible ? `✨ ${ar.nombre} — ${ar.notas}` : `🚫 ${ar.nombre} (Agotado en Stock)`}
-                            </option>
-                          ))}
-                        </select>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-[#3B2B23] flex items-center gap-1">
+                            <Flame className="w-3.5 h-3.5 text-[#C89D7C]" /> Fragancia Elegida:
+                          </label>
+                          <span className="text-[10px] font-bold text-[#C89D7C]">{aromaActual}</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {aromasStock.map((ar) => {
+                            const seleccionado = aromaActual === ar.nombre;
+                            return (
+                              <button
+                                key={ar.id}
+                                type="button"
+                                disabled={!ar.disponible}
+                                onClick={() =>
+                                  setAromaSeleccionadoPorProd((prev) => ({ ...prev, [prod.id]: ar.nombre }))
+                                }
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
+                                  !ar.disponible
+                                    ? "bg-gray-100 text-gray-400 line-through cursor-not-allowed border border-gray-200"
+                                    : seleccionado
+                                    ? "bg-[#3B2B23] text-[#FAF6F0] shadow-xs cursor-pointer"
+                                    : "bg-[#FAF6F0] text-[#3B2B23] hover:bg-[#F3ECE1] border border-[#E8D5CE] cursor-pointer"
+                                }`}
+                              >
+                                {ar.disponible ? ar.nombre : `${ar.nombre} (Agotado)`}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {infoAromaObj && (
+                          <p className="text-[10px] italic text-[#7A685F] bg-[#FAF6F0] px-2.5 py-1 rounded-lg border border-[#E8D5CE]/60">
+                            ✨ Notas: {infoAromaObj.notas}
+                          </p>
+                        )}
                       </div>
                     ) : (
                       <div className="px-3 py-2 rounded-xl bg-[#F3ECE1]/70 border border-[#E8D5CE] text-[11px] text-[#7A685F] flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5 text-[#C89D7C] shrink-0" />
                         <span>
-                          <strong>Vela Ritual de un Día:</strong> Elaborada en cera pura tradicional (no aplica fragancia).
+                          <strong>Vela Ritual de un Día:</strong> Cera pura tradicional (sin fragancia).
                         </span>
                       </div>
                     )}
@@ -705,15 +960,21 @@ export default function TiendaEterniaPage() {
         </div>
       </main>
 
+      {/* BARRA FLOTANTE INFERIOR CON EL GATICO CRIOLLO */}
       {totalUnidades > 0 && !carritoAbierto && (
-        <div className="fixed bottom-6 inset-x-4 z-40 max-w-lg mx-auto">
+        <div className="fixed bottom-6 inset-x-4 z-40 max-w-lg mx-auto group">
+          <div className="absolute -top-6 left-8 z-20">
+            <GaticoCriolloColgante asustado={gatoAsustado} />
+          </div>
           <button
-            onClick={() => setCarritoAbierto(true)}
-            className="w-full bg-[#3B2B23] text-[#FAF6F0] py-4 px-6 rounded-2xl shadow-2xl flex items-center justify-between border border-[#C89D7C] cursor-pointer"
+            onClick={abrirCarritoConGatico}
+            className="relative z-10 w-full bg-[#3B2B23] text-[#FAF6F0] py-4 px-6 rounded-2xl shadow-2xl flex items-center justify-between border-2 border-[#C89D7C] cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <span className="bg-[#C89D7C] text-white text-xs font-extrabold px-3 py-1 rounded-full">{totalUnidades}</span>
-              <span className="font-bold text-sm tracking-wider">Personalizar empaque y agendar</span>
+              <span className="bg-[#E67E22] text-white text-xs font-extrabold px-3 py-1 rounded-full">
+                {totalUnidades}
+              </span>
+              <span className="font-bold text-sm tracking-wider">Ver mi pedido y agendar</span>
             </div>
             <div className="text-right">
               <span className="text-sm font-extrabold text-[#C89D7C] block">Total: {formatoCOP(valorTotalCarrito)}</span>
@@ -723,12 +984,13 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
+      {/* DRAWER DEL CARRITO CON VALIDACIÓN DE PEDIDO MÍNIMO Y DEDICATORIA */}
       {carritoAbierto && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end">
           <div className="bg-[#FAF6F0] w-full max-w-md h-full flex flex-col shadow-2xl border-l border-[#E8D5CE]">
             <div className="p-5 bg-[#F3ECE1] border-b border-[#E8D5CE] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#C89D7C]" />
+                <StickerVelitaChibi />
                 <h3 className="font-bold text-lg font-serif text-[#3B2B23]">Tu Pedido en Eternia Candles</h3>
               </div>
               <button onClick={() => setCarritoAbierto(false)} className="p-1.5 rounded-lg hover:bg-[#E8D5CE]/50 text-[#3B2B23] cursor-pointer">
@@ -739,8 +1001,12 @@ export default function TiendaEterniaPage() {
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {carrito.length === 0 ? (
                 <div className="text-center py-12 space-y-3">
-                  <Sparkles className="w-10 h-10 text-[#C89D7C] mx-auto opacity-60" />
-                  <p className="text-sm text-[#7A685F]">Tu carrito está vacío. ¡Elige tus velas y aromas favoritos del catálogo!</p>
+                  <div className="flex justify-center">
+                    <GaticoCriolloColgante asustado={false} />
+                  </div>
+                  <p className="text-sm text-[#7A685F] pt-2">
+                    ¡Miau! Tu carrito está vacío. Elige tus velitas y aromas favoritos del catálogo.
+                  </p>
                 </div>
               ) : (
                 <>
@@ -800,6 +1066,20 @@ export default function TiendaEterniaPage() {
                     );
                   })}
 
+                  {/* ALERTA DE PEDIDO MÍNIMO DE TALLER ($15.000 COP) */}
+                  {!cumpleMinimoPedido && (
+                    <div className="p-3.5 rounded-2xl bg-[#FCF3CF] border border-[#E67E22] text-xs text-[#3B2B23] space-y-1">
+                      <div className="font-bold flex items-center gap-1.5 text-[#D35400]">
+                        <AlertTriangle className="w-4 h-4" /> Pedido mínimo de taller: {formatoCOP(PEDIDO_MINIMO_COP)}
+                      </div>
+                      <p className="text-[11px] text-[#7A685F]">
+                        Para poder fundir y preparar tu orden artesanalmente, te faltan{" "}
+                        <strong>{formatoCOP(PEDIDO_MINIMO_COP - valorTotalCarrito)}</strong>. ¡Agrega otra unidad o arma tu combo!
+                      </p>
+                    </div>
+                  )}
+
+                  {/* SELECTOR DE PRESENTACIÓN Y TARJETA DEDICATORIA */}
                   <div className="bg-white p-4 rounded-2xl border border-[#C89D7C] space-y-3 shadow-xs">
                     <div className="flex items-center gap-2 text-xs font-serif font-bold text-[#3B2B23]">
                       <Gift className="w-4 h-4 text-[#C89D7C]" />
@@ -826,7 +1106,7 @@ export default function TiendaEterniaPage() {
                         onChange={(e) => setIncluirDedicatoria(e.target.checked)}
                         className="rounded accent-[#C89D7C] w-4 h-4"
                       />
-                      <span>💌 ¿Es para regalar? Añadir tarjeta dedicatoria gratis</span>
+                      <span>💌 ¿Es para regalar? Añadir tarjeta dedicatoria ilustrada gratis</span>
                     </label>
 
                     {incluirDedicatoria && (
@@ -925,11 +1205,15 @@ export default function TiendaEterniaPage() {
 
                     <button
                       type="submit"
-                      disabled={enviando}
-                      className="w-full bg-[#C89D7C] hover:bg-[#b58967] text-white font-bold py-4 px-6 rounded-xl shadow-md flex items-center justify-center gap-2 transition text-sm cursor-pointer tracking-wider"
+                      disabled={enviando || !cumpleMinimoPedido}
+                      className="w-full bg-[#C89D7C] hover:bg-[#b58967] disabled:opacity-50 text-white font-bold py-4 px-6 rounded-xl shadow-md flex items-center justify-center gap-2 transition text-sm cursor-pointer tracking-wider"
                     >
                       <Send className="w-4 h-4" />
-                      {enviando ? "Generando Pedido..." : "Enviar Pedido por WhatsApp"}
+                      {enviando
+                        ? "Generando Pedido..."
+                        : !cumpleMinimoPedido
+                        ? `Mínimo de pedido: ${formatoCOP(PEDIDO_MINIMO_COP)}`
+                        : "Enviar Pedido por WhatsApp"}
                     </button>
                   </form>
                 </>
@@ -958,6 +1242,7 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
+      {/* MODAL MAPA DE SEGUIMIENTO */}
       {modalMapaAbierto && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF6F0] max-w-2xl w-full rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden my-8">
@@ -1083,6 +1368,7 @@ export default function TiendaEterniaPage() {
         </div>
       )}
 
+      {/* MODAL PRESENTACIÓN DE CUIDADO DE VELAS */}
       {modalCuidadoAbierto && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF6F0] max-w-3xl w-full rounded-3xl border border-[#E8D5CE] shadow-2xl overflow-hidden my-8">

@@ -17,6 +17,11 @@ import {
   KeyRound,
   LogOut,
   Flame,
+  TrendingUp,
+  Crown,
+  Eye,
+  EyeOff,
+  MessageCircle,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import {
@@ -95,7 +100,6 @@ function extraerDetallesOrigenAdmin(origenRaw?: string) {
   return base;
 }
 
-// Si un pedido anterior (como PED-007) se guardó antes del blindaje sin filas en pedido_items, reconstruye el producto según su valor y cera
 function reconstruirItemsSiVacio(p: any, catalogo: ProductoVela[]): PedidoItemDetalle[] {
   const valor = Number(p.valor_total) || 0;
   if (valor <= 0) return [];
@@ -154,6 +158,26 @@ function reconstruirItemsSiVacio(p: any, catalogo: ProductoVela[]): PedidoItemDe
   ];
 }
 
+function SelloGaticoCriolloTarjeta() {
+  return (
+    <svg width="56" height="46" viewBox="0 0 64 50" fill="none" className="mx-auto">
+      <path d="M15 24 L11 10 L24 17 Z" fill="#E67E22" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M15 21 L13 13 L21 17 Z" fill="#F5B7B1" />
+      <path d="M49 24 L53 10 L40 17 Z" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M48 16 L53 10 L44 15 Z" fill="#D35400" />
+      <path d="M49 21 L51 13 L43 17 Z" fill="#F5B7B1" />
+      <ellipse cx="32" cy="27" rx="18" ry="14" fill="#FFFFFF" stroke="#3B2B23" strokeWidth="2.2" />
+      <path d="M14 25 C14 17, 23 13, 31 14 C27 19, 23 24, 15 28 Z" fill="#E67E22" />
+      <ellipse cx="19" cy="30" rx="3" ry="1.8" fill="#F5B7B1" />
+      <ellipse cx="45" cy="30" rx="3" ry="1.8" fill="#F5B7B1" />
+      <circle cx="24" cy="26.5" r="2.6" fill="#3B2B23" />
+      <circle cx="40" cy="26.5" r="2.6" fill="#3B2B23" />
+      <polygon points="30.5,29 33.5,29 32,31" fill="#E67E22" />
+      <path d="M29 32.5 Q30.5 34.5 32 32.5 Q33.5 34.5 35 32.5" stroke="#3B2B23" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
 export default function AdminEterniaPage() {
   const [sesionVerificada, setSesionVerificada] = useState<boolean>(false);
   const [cargandoAuth, setCargandoAuth] = useState<boolean>(true);
@@ -161,8 +185,9 @@ export default function AdminEterniaPage() {
   const [passwordLogin, setPasswordLogin] = useState<string>("");
   const [errorLogin, setErrorLogin] = useState<string | null>(null);
 
-  const [tabActiva, setTabActiva] = useState<"POS" | "PEDIDOS" | "MOLDES" | "INVENTARIO" | "RECIBO">("POS");
+  const [tabActiva, setTabActiva] = useState<"POS" | "PEDIDOS" | "FINANZAS" | "RECIBO" | "MOLDES" | "INVENTARIO">("POS");
   const [productos, setProductos] = useState<ProductoVela[]>(CATALOGO_INICIAL_VELAS);
+  const [idsOcultos, setIdsOcultos] = useState<string[]>([]);
   const [insumos, setInsumos] = useState<InsumoItem[]>(INSUMOS_INICIALES);
   const [tarifasEmpaque, setTarifasEmpaque] = useState<Record<string, number>>(TARIFAS_EMPAQUE_DEFAULT);
   const [pedidos, setPedidos] = useState<PedidoCompleto[]>([]);
@@ -179,6 +204,7 @@ export default function AdminEterniaPage() {
   const [posAprobado, setPosAprobado] = useState<boolean>(true);
 
   const [codigoReciboSeleccionado, setCodigoReciboSeleccionado] = useState<string>("PED-001");
+  const [modoImpresionRecibo, setModoImpresionRecibo] = useState<"AMBOS" | "SOLO_RECIBO" | "SOLO_TARJETA">("AMBOS");
 
   const [nuevoNombreVela, setNuevoNombreVela] = useState<string>("");
   const [nuevaCatVela, setNuevaCatVela] = useState<ProductoVela["categoria"]>("NAVIDAD");
@@ -250,9 +276,12 @@ export default function AdminEterniaPage() {
           catalogoParaCalculo = parsedCat;
           setProductos(parsedCat);
         }
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) { console.error(e); }
+    }
+
+    const ocultosLocal = localStorage.getItem("eternia_ocultos_v1");
+    if (ocultosLocal) {
+      try { setIdsOcultos(JSON.parse(ocultosLocal)); } catch (e) { console.error(e); }
     }
 
     async function cargarPedidosDesdeNube() {
@@ -271,12 +300,21 @@ export default function AdminEterniaPage() {
                 setAromasStock(parsedAr);
                 localStorage.setItem("eternia_aromas_v1", JSON.stringify(parsedAr));
               }
-            } catch (e) {
-              console.error(e);
-            }
+            } catch (e) { console.error(e); }
           }
 
-          const pedidosReales = pedData.filter((p: any) => p.codigo !== "CFG-AROMAS");
+          const filaOcultos = pedData.find((p: any) => p.codigo === "CFG-OCULTOS");
+          if (filaOcultos && filaOcultos.origen) {
+            try {
+              const parsedOc = JSON.parse(filaOcultos.origen);
+              if (Array.isArray(parsedOc)) {
+                setIdsOcultos(parsedOc);
+                localStorage.setItem("eternia_ocultos_v1", JSON.stringify(parsedOc));
+              }
+            } catch (e) { console.error(e); }
+          }
+
+          const pedidosReales = pedData.filter((p: any) => !String(p.codigo || "").startsWith("CFG-"));
           const pedidosMapeados: PedidoCompleto[] = pedidosReales.map((p: any) => {
             const infoOrigen = extraerDetallesOrigenAdmin(p.origen);
             const itemsDeTabla: PedidoItemDetalle[] = (p.pedido_items || []).map((it: any) => ({
@@ -337,9 +375,7 @@ export default function AdminEterniaPage() {
           const parsed = JSON.parse(pedLocalAdmin);
           setPedidos(parsed);
           if (parsed.length > 0) setCodigoReciboSeleccionado(parsed[0].codigo);
-        } catch (e) {
-          console.error(e);
-        }
+        } catch (e) { console.error(e); }
       }
     }
 
@@ -370,12 +406,7 @@ export default function AdminEterniaPage() {
 
     if (isSupabaseConfigured) {
       const hoy = new Date().toISOString().split("T")[0];
-      const { data: existente } = await supabase
-        .from("pedidos")
-        .select("id")
-        .eq("codigo", "CFG-AROMAS")
-        .maybeSingle();
-
+      const { data: existente } = await supabase.from("pedidos").select("id").eq("codigo", "CFG-AROMAS").maybeSingle();
       if (existente && existente.id) {
         await supabase.from("pedidos").update({ origen: JSON.stringify(nuevaLista) }).eq("id", existente.id);
       } else {
@@ -403,9 +434,46 @@ export default function AdminEterniaPage() {
     }
   };
 
+  const alternarVisibilidadVelaTienda = async (idProd: string) => {
+    const nuevaListaOcultos = idsOcultos.includes(idProd)
+      ? idsOcultos.filter((id) => id !== idProd)
+      : [...idsOcultos, idProd];
+
+    setIdsOcultos(nuevaListaOcultos);
+    localStorage.setItem("eternia_ocultos_v1", JSON.stringify(nuevaListaOcultos));
+
+    if (isSupabaseConfigured) {
+      const hoy = new Date().toISOString().split("T")[0];
+      const { data: existente } = await supabase.from("pedidos").select("id").eq("codigo", "CFG-OCULTOS").maybeSingle();
+      if (existente && existente.id) {
+        await supabase.from("pedidos").update({ origen: JSON.stringify(nuevaListaOcultos) }).eq("id", existente.id);
+      } else {
+        await supabase.from("pedidos").insert({
+          codigo: "CFG-OCULTOS",
+          cliente_nombre: "CONFIG_OCULTOS",
+          cliente_whatsapp: "000",
+          aprobado: false,
+          descuento_pct: 0,
+          valor_total: 0,
+          costo_total: 0,
+          abono_50: 0,
+          dinero_recibido: 0,
+          ganancia_libre: 0,
+          cera_total_g: 0,
+          fragancia_total_ml: 0,
+          pabilo_total_cm: 0,
+          medio_pago: "Nequi",
+          estado: "Sistema",
+          origen: JSON.stringify(nuevaListaOcultos),
+          fecha_pedido: hoy,
+          fecha_entrega: hoy,
+        });
+      }
+    }
+  };
+
   const alternarDisponibilidadAroma = (id: string) => {
-    const actualizados = aromasStock.map((a) => (a.id === id ? { ...a, disponible: !a.disponible } : a));
-    sincronizarAromasNube(actualizados);
+    sincronizarAromasNube(aromasStock.map((a) => (a.id === id ? { ...a, disponible: !a.disponible } : a)));
   };
 
   const agregarNuevoAroma = () => {
@@ -456,6 +524,19 @@ export default function AdminEterniaPage() {
     guardarPedidos(pedidos.map((x) => (x.id === ped.id ? { ...ped, estado: nuevaEtapa, aprobado: esAprobado, dinero_recibido: nuevoDinero } : x)));
   };
 
+  const enviarAvisoWhatsAppCliente = (ped: PedidoCompleto) => {
+    const telLimpio = ped.cliente_whatsapp.replace(/\D/g, "");
+    const numFinal = telLimpio.startsWith("57") ? telLimpio : `57${telLimpio}`;
+    const saldo = Math.max(0, ped.valor_total - ped.abono_50);
+    const msg =
+      `\u2728 Hola *${ped.cliente_nombre}*! \uD83D\uDC31\n\n` +
+      `Te escribimos de *Eternia Candles* para contarte que tu pedido *${ped.codigo}* se encuentra en etapa: *${ped.estado}*.\n\n` +
+      `\uD83D\uDCB0 Valor Total: ${formatoCOP(ped.valor_total)}\n` +
+      `\u2705 Saldo contra entrega: ${formatoCOP(saldo)}\n\n` +
+      `Puedes ver el mapa de seguimiento en vivo en nuestra web con tu codigo *${ped.codigo}*.`;
+    window.open(`https://api.whatsapp.com/send?phone=${numFinal}&text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   const agregarItemAlPos = () => {
     const prod = productos.find((p) => p.id === posProductoId);
     if (!prod) return;
@@ -472,6 +553,9 @@ export default function AdminEterniaPage() {
     const costoTotal = redondearCentena(posItems.reduce((acc, it) => acc + it.producto.costo_produccion * it.cantidad, 0));
     const abono50 = redondearCentena(valorTotal * 0.5);
     const gananciaLibre = valorTotal > 0 ? valorTotal - costoTotal : 0;
+    const margenPct = valorTotal > 0 ? Math.round((gananciaLibre / valorTotal) * 100) : 0;
+    const valeLaPena = valorTotal >= 15000 && gananciaLibre >= 7000 && margenPct >= 40;
+
     const ceraG = posItems.reduce((acc, it) => acc + it.producto.cera_g * it.cantidad, 0);
     const fragMl = posItems.reduce((acc, it) => acc + it.producto.fragancia_ml * it.cantidad, 0);
     const pabCm = posItems.reduce((acc, it) => acc + it.producto.pabilo_cm * it.cantidad, 0);
@@ -484,8 +568,42 @@ export default function AdminEterniaPage() {
     const siguienteNum = Math.max(0, ...numerosExistentes) + 1;
     const proximoCodigo = `PED-${String(siguienteNum).padStart(3, "0")}`;
 
-    return { valorTotal, costoTotal, abono50, gananciaLibre, ceraG, fragMl, pabCm, proximoCodigo };
+    return { valorTotal, costoTotal, abono50, gananciaLibre, margenPct, valeLaPena, ceraG, fragMl, pabCm, proximoCodigo };
   }, [posItems, posDescuentoPct, pedidos]);
+
+  const estadisticasFinanzas = useMemo(() => {
+    const realizados = pedidos.filter((p) => p.aprobado || p.estado === "Listo para Entrega");
+    const ventasTotales = realizados.reduce((acc, p) => acc + (Number(p.valor_total) || 0), 0);
+    const costosTotales = realizados.reduce((acc, p) => acc + (Number(p.costo_total) || 0), 0);
+    const gananciaBrutaReal = realizados.reduce((acc, p) => acc + (Number(p.ganancia_libre) || 0), 0);
+    const ceraFundidaG = realizados.reduce((acc, p) => acc + (Number(p.cera_total_g) || 0), 0);
+    const margenGlobal = ventasTotales > 0 ? Math.round((gananciaBrutaReal / ventasTotales) * 100) : 0;
+
+    const mapaClientes: Record<
+      string,
+      { nombre: string; whatsapp: string; cantidadPedidos: number; totalComprado: number; gananciaGenerada: number }
+    > = {};
+
+    pedidos.forEach((p) => {
+      const clave = (p.cliente_whatsapp || p.cliente_nombre || "General").trim();
+      if (!mapaClientes[clave]) {
+        mapaClientes[clave] = {
+          nombre: p.cliente_nombre,
+          whatsapp: p.cliente_whatsapp,
+          cantidadPedidos: 0,
+          totalComprado: 0,
+          gananciaGenerada: 0,
+        };
+      }
+      mapaClientes[clave].cantidadPedidos += 1;
+      mapaClientes[clave].totalComprado += Number(p.valor_total) || 0;
+      mapaClientes[clave].gananciaGenerada += Number(p.ganancia_libre) || 0;
+    });
+
+    const rankingClientes = Object.values(mapaClientes).sort((a, b) => b.totalComprado - a.totalComprado);
+
+    return { realizados, ventasTotales, costosTotales, gananciaBrutaReal, ceraFundidaG, margenGlobal, rankingClientes };
+  }, [pedidos]);
 
   const registrarPedidoDesdePOS = async () => {
     if (posItems.length === 0) {
@@ -724,7 +842,7 @@ export default function AdminEterniaPage() {
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-serif font-bold tracking-wider">ETERNIA CANDLES — PANEL ADMINISTRATIVO</h1>
-              <p className="text-xs text-[#E8D5CE] tracking-wider">Cotizador • Seguimiento en Vivo • Recibos y Dedicatorias • Stock de Aromas</p>
+              <p className="text-xs text-[#E8D5CE] tracking-wider">POS • Pedidos • Finanzas & Clientes VIP • Recibo y Tarjeta Separada • Visibilidad Catálogo</p>
             </div>
           </div>
 
@@ -741,10 +859,11 @@ export default function AdminEterniaPage() {
         <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto pt-4">
           {[
             { id: "POS", label: "1. Cotizador POS", icon: ShoppingCart },
-            { id: "PEDIDOS", label: `2. Control de Pedidos (${pedidos.length})`, icon: CheckCircle },
-            { id: "RECIBO", label: "3. Recibo / PDF", icon: FileText },
-            { id: "MOLDES", label: "4. Nuevos Moldes", icon: PlusCircle },
-            { id: "INVENTARIO", label: "5. Aromas e Insumos", icon: Package },
+            { id: "PEDIDOS", label: `2. Pedidos (${pedidos.length})`, icon: CheckCircle },
+            { id: "FINANZAS", label: "3. Finanzas y Clientes VIP", icon: TrendingUp },
+            { id: "RECIBO", label: "4. Recibo y Tarjeta PDF", icon: FileText },
+            { id: "MOLDES", label: "5. Nuevos Moldes", icon: PlusCircle },
+            { id: "INVENTARIO", label: "6. Aromas, Catálogo e Insumos", icon: Package },
           ].map((tab) => {
             const Icon = tab.icon;
             const activa = tabActiva === tab.id;
@@ -764,7 +883,7 @@ export default function AdminEterniaPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 sm:p-8">
-        {/* PESTAÑA 1: COTIZADOR POS */}
+        {/* PESTAÑA 1: COTIZADOR POS CON ALERTA DE RENTABILIDAD */}
         {tabActiva === "POS" && (
           <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs space-y-5">
@@ -834,14 +953,14 @@ export default function AdminEterniaPage() {
 
             <div className="lg:col-span-5 bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs flex flex-col justify-between space-y-5">
               <div className="space-y-4">
-                <h3 className="text-base font-serif font-bold border-b pb-2">Resumen Financiero y Producción</h3>
+                <h3 className="text-base font-serif font-bold border-b pb-2">Resumen Financiero y Semáforo de Rentabilidad</h3>
                 <div className="p-4 bg-[#FAF6F0] rounded-xl border border-[#E8D5CE] space-y-3">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-[#7A685F]">Subtotal Catálogo:</span>
-                    <span className="font-bold">{formatoCOP(posItems.reduce((acc, it) => acc + it.producto.precio_catalogo * it.cantidad, 0))}</span>
+                    <span className="text-[#7A685F]">Costo Total de Producción:</span>
+                    <span className="font-bold">{formatoCOP(posCalculos.costoTotal)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm font-serif font-bold text-[#3B2B23] border-t border-[#E8D5CE] pt-2">
-                    <span>VALOR TOTAL:</span>
+                    <span>VALOR TOTAL VENTA:</span>
                     <span className="text-xl text-[#C89D7C]">{formatoCOP(posCalculos.valorTotal)}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs bg-[#D4EFDF] text-[#196F3D] p-2 rounded-lg font-bold">
@@ -850,12 +969,36 @@ export default function AdminEterniaPage() {
                   </div>
                 </div>
 
+                {posItems.length > 0 && (
+                  <div
+                    className={`p-3.5 rounded-xl border text-xs space-y-1 ${
+                      posCalculos.valeLaPena
+                        ? "bg-[#D4EFDF] border-[#196F3D]/30 text-[#196F3D]"
+                        : "bg-[#FADBD8] border-[#922B21]/30 text-[#922B21]"
+                    }`}
+                  >
+                    <div className="font-bold flex items-center justify-between">
+                      <span>
+                        {posCalculos.valeLaPena
+                          ? "🟢 SÍ VALE LA PENA (Margen Óptimo)"
+                          : "🔴 NO VALE LA PENA (Pedido o Margen muy bajo)"}
+                      </span>
+                      <span>Margen: {posCalculos.margenPct}%</span>
+                    </div>
+                    <p className="text-[11px]">
+                      {posCalculos.valeLaPena
+                        ? `Ganancia libre de ${formatoCOP(posCalculos.gananciaLibre)}. Compensa el tiempo de fundición y empaque.`
+                        : `Ganancia libre de solo ${formatoCOP(posCalculos.gananciaLibre)}. Sugiere armar combo o mínimo $15.000.`}
+                    </p>
+                  </div>
+                )}
+
                 <div className="p-4 bg-[#F3ECE1]/60 rounded-xl border border-[#E8D5CE] space-y-2 text-xs">
                   <p className="font-bold font-serif text-[#3B2B23]">Requerimientos de Insumos:</p>
                   <div className="flex justify-between"><span className="text-[#7A685F]">Cera Total:</span><strong>{posCalculos.ceraG} g</strong></div>
                   <div className="flex justify-between"><span className="text-[#7A685F]">Fragancia Total:</span><strong>{posCalculos.fragMl} ml</strong></div>
                   <div className="flex justify-between"><span className="text-[#7A685F]">Pabilo Total:</span><strong>{posCalculos.pabCm} cm</strong></div>
-                  <div className="flex justify-between border-t border-[#E8D5CE] pt-2"><span className="text-[#7A685F]">Ganancia Estimada:</span><strong className="text-[#196F3D]">{formatoCOP(posCalculos.gananciaLibre)}</strong></div>
+                  <div className="flex justify-between border-t border-[#E8D5CE] pt-2"><span className="text-[#7A685F]">Ganancia Libre Neta:</span><strong className="text-[#196F3D]">{formatoCOP(posCalculos.gananciaLibre)}</strong></div>
                 </div>
               </div>
 
@@ -878,16 +1021,20 @@ export default function AdminEterniaPage() {
                     <th className="p-3">Etapa en Mapa de Seguimiento</th>
                     <th className="p-3">Cliente</th>
                     <th className="p-3">Productos, Aromas y Dedicatoria</th>
-                    <th className="p-3 text-right">Total</th>
+                    <th className="p-3 text-right">Total / Ganancia</th>
                     <th className="p-3 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F3ECE1]">
                   {pedidos.map((ped) => {
                     const infoOrigen = extraerDetallesOrigenAdmin(ped.origen);
+                    const esRentable = ped.valor_total >= 15000 && ped.ganancia_libre >= 6000;
                     return (
                       <tr key={ped.id} className="hover:bg-[#FAF6F0]/60">
-                        <td className="p-3 font-bold">{ped.codigo}</td>
+                        <td className="p-3 font-bold">
+                          {ped.codigo}
+                          <span className="block text-[10px] text-[#7A685F] font-normal">{ped.fecha_pedido}</span>
+                        </td>
                         <td className="p-3">
                           <select
                             value={ped.aprobado ? "Sí" : "No"}
@@ -919,18 +1066,43 @@ export default function AdminEterniaPage() {
                           <div className="text-[10px] text-[#7A685F] pt-1">🎁 Empaque: <strong>{infoOrigen.empaque}</strong></div>
                           {infoOrigen.tieneDedicatoria && (
                             <div className="p-2 rounded-lg bg-[#F3ECE1] border border-[#C89D7C] text-[11px]">
-                              <strong>💌 Dedicatoria (Para {infoOrigen.para} / De {infoOrigen.de}):</strong> &ldquo;{infoOrigen.mensaje}&rdquo;
+                              <strong>💌 Tarjeta (Para {infoOrigen.para} / De {infoOrigen.de}):</strong> &ldquo;{infoOrigen.mensaje}&rdquo;
                             </div>
                           )}
                         </td>
-                        <td className="p-3 text-right font-bold">{formatoCOP(ped.valor_total)}</td>
-                        <td className="p-3 text-center flex items-center justify-center gap-2">
-                          <button onClick={() => { setCodigoReciboSeleccionado(ped.codigo); setTabActiva("RECIBO"); }} className="bg-[#C89D7C] text-white p-1.5 rounded cursor-pointer" title="Recibo y Tarjeta">
-                            <FileText className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => eliminarPedido(ped.id, ped.codigo)} className="bg-red-700 hover:bg-red-800 text-white p-1.5 rounded cursor-pointer" title="Eliminar Pedido">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        <td className="p-3 text-right">
+                          <strong className="text-sm block">{formatoCOP(ped.valor_total)}</strong>
+                          <span className="text-[10px] text-[#196F3D] font-bold block">
+                            Ganancia: +{formatoCOP(ped.ganancia_libre)}
+                          </span>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold inline-block mt-0.5 ${esRentable ? "bg-[#D4EFDF] text-[#196F3D]" : "bg-[#FADBD8] text-[#922B21]"}`}>
+                            {esRentable ? "🟢 Óptimo" : "🟡 Bajo"}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => enviarAvisoWhatsAppCliente(ped)}
+                              className="bg-[#196F3D] hover:bg-green-800 text-white p-1.5 rounded cursor-pointer"
+                              title="Avisar estado por WhatsApp"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => { setCodigoReciboSeleccionado(ped.codigo); setTabActiva("RECIBO"); }}
+                              className="bg-[#C89D7C] text-white p-1.5 rounded cursor-pointer"
+                              title="Ver Recibo y Tarjeta Imprimible"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => eliminarPedido(ped.id, ped.codigo)}
+                              className="bg-red-700 hover:bg-red-800 text-white p-1.5 rounded cursor-pointer"
+                              title="Eliminar Pedido"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -941,119 +1113,316 @@ export default function AdminEterniaPage() {
           </div>
         )}
 
-        {/* PESTAÑA 3: RECIBO / PDF Y DEDICATORIA */}
-        {tabActiva === "RECIBO" && (
-          <div className="space-y-6">
-            <div className="no-print bg-white p-4 rounded-2xl border border-[#E8D5CE] flex justify-between items-center shadow-xs">
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-serif font-bold text-[#3B2B23]">SELECCIONAR PEDIDO:</label>
-                <select value={codigoReciboSeleccionado} onChange={(e) => setCodigoReciboSeleccionado(e.target.value)} className="px-4 py-2 bg-[#FAF6F0] border border-[#C89D7C] rounded-xl font-bold text-sm text-[#3B2B23]">
-                  {pedidos.map((p) => (<option key={p.id} value={p.codigo}>{p.codigo} — {p.cliente_nombre}</option>))}
-                </select>
+        {/* PESTAÑA 3: FINANZAS ESTILO EXCEL Y RANKING DE CLIENTES VIP */}
+        {tabActiva === "FINANZAS" && (
+          <div className="no-print space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-[#E8D5CE] shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A685F]">Ventas Aprobadas / Realizadas</span>
+                <p className="text-2xl font-serif font-extrabold text-[#3B2B23] mt-1">
+                  {formatoCOP(estadisticasFinanzas.ventasTotales)}
+                </p>
+                <span className="text-xs text-[#7A685F]">{estadisticasFinanzas.realizados.length} pedidos efectivos</span>
               </div>
-              <button onClick={() => window.print()} className="bg-[#3B2B23] hover:bg-[#523d32] text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm tracking-wider">
-                <Printer className="w-4 h-4 text-[#C89D7C]" /> Imprimir Recibo y Tarjeta PDF
-              </button>
+
+              <div className="bg-white p-5 rounded-2xl border border-[#E8D5CE] shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A685F]">Costo de Hacerlas (Insumos)</span>
+                <p className="text-2xl font-serif font-extrabold text-[#922B21] mt-1">
+                  {formatoCOP(estadisticasFinanzas.costosTotales)}
+                </p>
+                <span className="text-xs text-[#7A685F]">Cera fundida: {estadisticasFinanzas.ceraFundidaG} g</span>
+              </div>
+
+              <div className="bg-[#D4EFDF] p-5 rounded-2xl border border-[#196F3D]/30 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#196F3D]">Ganancia Bruta Libre Real</span>
+                <p className="text-2xl font-serif font-extrabold text-[#196F3D] mt-1">
+                  +{formatoCOP(estadisticasFinanzas.gananciaBrutaReal)}
+                </p>
+                <span className="text-xs font-bold text-[#196F3D]">Dinero libre descontando costos</span>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-[#C89D7C] shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A685F]">Margen Promedio del Taller</span>
+                <p className="text-2xl font-serif font-extrabold text-[#C89D7C] mt-1">
+                  {estadisticasFinanzas.margenGlobal}%
+                </p>
+                <span className="text-xs text-[#7A685F]">Rentabilidad sobre ventas</span>
+              </div>
             </div>
 
-            {pedidoReciboActual && (
-              <div className="bg-white max-w-xl mx-auto p-5 sm:p-6 rounded-2xl border border-[#E8D5CE] shadow-md space-y-4 font-sans relative overflow-hidden">
-                <div className="text-center border-b border-[#E8D5CE] pb-3 space-y-1">
-                  <div className="inline-flex w-8 h-8 rounded-full bg-[#C89D7C] items-center justify-center text-white shadow-xs mb-0.5">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <h2 className="text-xl font-serif font-bold tracking-[0.2em] text-[#3B2B23]">ETERNIA CANDLES</h2>
-                  <p className="text-[10px] text-[#7A685F] italic tracking-widest font-serif">Handmade Aromas • Diseño, Calma y Esencia Natural</p>
-                  <p className="text-[10px] text-[#7A685F] tracking-wider pt-0.5">Bogotá, Colombia • IG: @eternia.candles • WA: 313 201 9146</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 bg-[#FAF6F0] p-3.5 rounded-xl border border-[#E8D5CE] text-xs">
-                  <div className="space-y-0.5">
-                    <p className="text-[#7A685F] uppercase tracking-wider text-[9px] font-bold">Datos del Cliente</p>
-                    <p className="text-xs font-serif font-bold text-[#3B2B23]">{pedidoReciboActual.cliente_nombre}</p>
-                    <p className="text-[#3B2B23]">WhatsApp: <strong className="font-mono">{pedidoReciboActual.cliente_whatsapp}</strong></p>
-                  </div>
-                  <div className="space-y-0.5 text-right">
-                    <p className="text-[#7A685F] uppercase tracking-wider text-[9px] font-bold">Detalles de Orden</p>
-                    <p className="text-xs font-serif font-bold text-[#C89D7C]">{pedidoReciboActual.codigo}</p>
-                    <p className="text-[#3B2B23]">Fecha: <strong>{pedidoReciboActual.fecha_pedido}</strong></p>
-                    <p className="text-[#3B2B23]">Entrega aprox: <strong>{pedidoReciboActual.fecha_entrega}</strong></p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-[11px] font-serif font-bold uppercase tracking-widest text-[#3B2B23] border-b border-[#E8D5CE] pb-1">Resumen de Productos y Fragancias</h4>
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="text-[#7A685F] uppercase text-[9px] tracking-wider border-b border-[#F3ECE1]">
-                        <th className="pb-1.5 font-medium">Descripción / Producto</th>
-                        <th className="pb-1.5 text-center font-medium">Cant.</th>
-                        <th className="pb-1.5 text-right font-medium">Unitario</th>
-                        <th className="pb-1.5 text-right font-medium">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F3ECE1]">
-                      {(pedidoReciboActual.items || []).map((it, i) => (
-                        <tr key={i}>
-                          <td className="py-2 font-serif font-bold text-[#3B2B23]">{it.producto_nombre}</td>
-                          <td className="py-2 text-center font-bold">{it.cantidad}</td>
-                          <td className="py-2 text-right text-[#7A685F]">{formatoCOP(it.precio_unitario)}</td>
-                          <td className="py-2 text-right font-bold text-[#3B2B23]">{formatoCOP(it.subtotal)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {(() => {
-                  const infoOrigen = extraerDetallesOrigenAdmin(pedidoReciboActual.origen);
-                  return (
-                    <>
-                      <div className="text-[11px] text-[#7A685F] bg-[#FAF6F0] px-3 py-2 rounded-lg border border-[#E8D5CE]">
-                        🎁 <strong>Presentación elegida:</strong> {infoOrigen.empaque}
-                      </div>
-                      {infoOrigen.tieneDedicatoria && (
-                        <div className="p-4 rounded-xl bg-[#FAF6F0] border-2 border-dashed border-[#C89D7C] text-center space-y-1.5">
-                          <span className="text-[9px] font-serif uppercase tracking-[0.25em] text-[#C89D7C] block">
-                            ✂️ Tarjeta Dedicatoria Boutique • Eternia Candles
-                          </span>
-                          <p className="text-xs font-serif font-bold text-[#3B2B23]">
-                            Para: {infoOrigen.para} &nbsp;|&nbsp; De: {infoOrigen.de}
-                          </p>
-                          <p className="text-xs italic font-serif text-[#3B2B23] px-4">&ldquo;{infoOrigen.mensaje}&rdquo;</p>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-
-                <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#E8D5CE] space-y-1.5 text-xs">
-                  <div className="flex justify-between items-center font-serif font-bold text-[#3B2B23] border-b border-[#E8D5CE] pb-1.5 text-sm">
-                    <span>Valor Total del Pedido:</span>
-                    <span>{formatoCOP(pedidoReciboActual.valor_total)}</span>
-                  </div>
-                  <div className="flex justify-between items-center font-semibold text-[#196F3D] bg-[#D4EFDF] px-3 py-1.5 rounded-lg">
-                    <span>Anticipo 50% (Pagado / Requerido):</span>
-                    <span className="font-bold">{formatoCOP(pedidoReciboActual.abono_50)}</span>
-                  </div>
-                  <div className="flex justify-between items-center font-semibold text-[#3B2B23] bg-white px-3 py-1.5 rounded-lg border border-[#E8D5CE]">
-                    <span>Saldo Contra Entrega:</span>
-                    <span className="font-bold">{formatoCOP(Math.max(0, pedidoReciboActual.valor_total - pedidoReciboActual.abono_50))}</span>
-                  </div>
-                </div>
-
-                <div className="text-center space-y-1.5 pt-1.5 border-t border-[#E8D5CE]">
-                  <div className="bg-[#F3ECE1]/60 p-2.5 rounded-xl text-[10px] text-[#7A685F] space-y-0.5">
-                    <p className="font-serif font-bold text-[#3B2B23]">Cuentas Oficiales — María Paula Prada Coronado</p>
-                    <p>Nequi / Daviplata: <strong className="text-[#3B2B23]">313 201 9146</strong> | Bancolombia Ahorros: <strong className="text-[#3B2B23]">22582959122</strong></p>
-                  </div>
+            <div className="bg-white rounded-2xl border border-[#E8D5CE] overflow-x-auto shadow-xs">
+              <div className="p-5 border-b border-[#F3ECE1] flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-serif font-bold text-[#3B2B23] flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-[#C89D7C]" /> Directorio de Clientes Frecuentes & VIP
+                  </h3>
+                  <p className="text-xs text-[#7A685F]">
+                    Clasificación automática según compras acumuladas para dar beneficios especiales o invitar al Club Eternia.
+                  </p>
                 </div>
               </div>
-            )}
+
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-[#3B2B23] text-white font-serif">
+                    <th className="p-3">Cliente</th>
+                    <th className="p-3">WhatsApp</th>
+                    <th className="p-3 text-center">Pedidos Realizados</th>
+                    <th className="p-3 text-right">Total Comprado</th>
+                    <th className="p-3 text-right">Ganancia Generada</th>
+                    <th className="p-3 text-center">Nivel / Categoría</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F3ECE1]">
+                  {estadisticasFinanzas.rankingClientes.map((cli, idx) => {
+                    const esVIP = cli.cantidadPedidos >= 3 || cli.totalComprado >= 100000;
+                    const esFrecuente = !esVIP && (cli.cantidadPedidos === 2 || cli.totalComprado >= 50000);
+                    return (
+                      <tr key={idx} className="hover:bg-[#FAF6F0]">
+                        <td className="p-3 font-bold text-[#3B2B23]">{cli.nombre}</td>
+                        <td className="p-3 font-mono">{cli.whatsapp}</td>
+                        <td className="p-3 text-center font-bold">{cli.cantidadPedidos}</td>
+                        <td className="p-3 text-right font-bold">{formatoCOP(cli.totalComprado)}</td>
+                        <td className="p-3 text-right font-bold text-[#196F3D]">+{formatoCOP(cli.gananciaGenerada)}</td>
+                        <td className="p-3 text-center">
+                          {esVIP ? (
+                            <span className="px-3 py-1 rounded-full bg-[#3B2B23] text-[#C89D7C] font-bold text-[10px]">
+                              👑 CLIENTE VIP ETERNIA
+                            </span>
+                          ) : esFrecuente ? (
+                            <span className="px-3 py-1 rounded-full bg-[#F3ECE1] text-[#3B2B23] border border-[#C89D7C] font-bold text-[10px]">
+                              ⭐ CLIENTE FRECUENTE
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full bg-gray-100 text-[#7A685F] font-bold text-[10px]">
+                              🌱 NUEVO CLIENTE
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-[#E8D5CE] overflow-x-auto shadow-xs">
+              <div className="p-5 border-b border-[#F3ECE1]">
+                <h3 className="text-lg font-serif font-bold text-[#3B2B23]">
+                  Libro Contable de Pedidos Realizados (Estilo Excel)
+                </h3>
+                <p className="text-xs text-[#7A685F]">
+                  Detalle exacto de cuánto costó fabricar cada pedido vs cuánto dejó de ganancia libre.
+                </p>
+              </div>
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-[#F3ECE1] text-[#3B2B23] font-serif">
+                    <th className="p-3">Código</th>
+                    <th className="p-3">Fecha</th>
+                    <th className="p-3">Cliente</th>
+                    <th className="p-3">Detalle de Productos</th>
+                    <th className="p-3 text-right">Valor Venta</th>
+                    <th className="p-3 text-right">Costo Hacerlo</th>
+                    <th className="p-3 text-right">Ganancia Libre</th>
+                    <th className="p-3 text-center">Rentabilidad</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F3ECE1]">
+                  {estadisticasFinanzas.realizados.map((p) => {
+                    const margen = p.valor_total > 0 ? Math.round((p.ganancia_libre / p.valor_total) * 100) : 0;
+                    const optimo = p.valor_total >= 15000 && margen >= 40;
+                    return (
+                      <tr key={p.id} className="hover:bg-[#FAF6F0]">
+                        <td className="p-3 font-bold">{p.codigo}</td>
+                        <td className="p-3">{p.fecha_pedido}</td>
+                        <td className="p-3 font-semibold">{p.cliente_nombre}</td>
+                        <td className="p-3">
+                          {(p.items || []).map((it, i) => (
+                            <div key={i}>{it.cantidad}x {it.producto_nombre}</div>
+                          ))}
+                        </td>
+                        <td className="p-3 text-right font-bold">{formatoCOP(p.valor_total)}</td>
+                        <td className="p-3 text-right text-[#922B21]">{formatoCOP(p.costo_total)}</td>
+                        <td className="p-3 text-right font-extrabold text-[#196F3D]">+{formatoCOP(p.ganancia_libre)}</td>
+                        <td className="p-3 text-center">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${optimo ? "bg-[#D4EFDF] text-[#196F3D]" : "bg-[#FCF3CF] text-[#D35400]"}`}>
+                            {optimo ? `🟢 Óptimo (${margen}%)` : `🟡 Ajustado (${margen}%)`}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* PESTAÑA 4: NUEVOS MOLDES */}
+        {/* PESTAÑA 4: RECIBO FINANCIERO (PÁG 1) + TARJETA DEDICATORIA (PÁG 2) */}
+        {tabActiva === "RECIBO" && (
+          <div className="space-y-8">
+            <div className="no-print bg-white p-4 rounded-2xl border border-[#E8D5CE] flex flex-wrap justify-between items-center gap-4 shadow-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-xs font-serif font-bold text-[#3B2B23]">PEDIDO:</label>
+                <select
+                  value={codigoReciboSeleccionado}
+                  onChange={(e) => setCodigoReciboSeleccionado(e.target.value)}
+                  className="px-4 py-2 bg-[#FAF6F0] border border-[#C89D7C] rounded-xl font-bold text-sm text-[#3B2B23]"
+                >
+                  {pedidos.map((p) => (<option key={p.id} value={p.codigo}>{p.codigo} — {p.cliente_nombre}</option>))}
+                </select>
+
+                <select
+                  value={modoImpresionRecibo}
+                  onChange={(e) => setModoImpresionRecibo(e.target.value as typeof modoImpresionRecibo)}
+                  className="px-3 py-2 bg-[#F3ECE1] border border-[#E8D5CE] rounded-xl font-bold text-xs text-[#3B2B23]"
+                >
+                  <option value="AMBOS">📄 Imprimir Hoja 1 (Factura) + Hoja 2 (Tarjeta Dedicatoria Separada)</option>
+                  <option value="SOLO_RECIBO">🧾 Imprimir Solo Hoja 1 (Factura Financiera)</option>
+                  <option value="SOLO_TARJETA">💌 Imprimir Solo Hoja 2 (Tarjeta Dedicatoria de Regalo)</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => window.print()}
+                className="bg-[#3B2B23] hover:bg-[#523d32] text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm tracking-wider"
+              >
+                <Printer className="w-4 h-4 text-[#C89D7C]" /> Imprimir PDF
+              </button>
+            </div>
+
+            {pedidoReciboActual && (() => {
+              const infoOrigen = extraerDetallesOrigenAdmin(pedidoReciboActual.origen);
+              return (
+                <div className="space-y-10">
+                  {(modoImpresionRecibo === "AMBOS" || modoImpresionRecibo === "SOLO_RECIBO") && (
+                    <div className="bg-white max-w-xl mx-auto p-6 rounded-2xl border border-[#E8D5CE] shadow-md space-y-4 font-sans relative overflow-hidden">
+                      <div className="text-center border-b border-[#E8D5CE] pb-3 space-y-1">
+                        <div className="inline-flex w-8 h-8 rounded-full bg-[#C89D7C] items-center justify-center text-white shadow-xs mb-0.5">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <h2 className="text-xl font-serif font-bold tracking-[0.2em] text-[#3B2B23]">ETERNIA CANDLES</h2>
+                        <p className="text-[10px] text-[#7A685F] italic tracking-widest font-serif">Handmade Aromas • Diseño, Calma y Esencia Natural</p>
+                        <p className="text-[10px] text-[#7A685F] tracking-wider pt-0.5">Bogotá, Colombia • IG: @eternia.candles • WA: 313 201 9146</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 bg-[#FAF6F0] p-3.5 rounded-xl border border-[#E8D5CE] text-xs">
+                        <div className="space-y-0.5">
+                          <p className="text-[#7A685F] uppercase tracking-wider text-[9px] font-bold">Datos del Cliente</p>
+                          <p className="text-xs font-serif font-bold text-[#3B2B23]">{pedidoReciboActual.cliente_nombre}</p>
+                          <p className="text-[#3B2B23]">WhatsApp: <strong className="font-mono">{pedidoReciboActual.cliente_whatsapp}</strong></p>
+                        </div>
+                        <div className="space-y-0.5 text-right">
+                          <p className="text-[#7A685F] uppercase tracking-wider text-[9px] font-bold">Detalles de Orden</p>
+                          <p className="text-xs font-serif font-bold text-[#C89D7C]">{pedidoReciboActual.codigo}</p>
+                          <p className="text-[#3B2B23]">Fecha: <strong>{pedidoReciboActual.fecha_pedido}</strong></p>
+                          <p className="text-[#3B2B23]">Entrega aprox: <strong>{pedidoReciboActual.fecha_entrega}</strong></p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-[11px] font-serif font-bold uppercase tracking-widest text-[#3B2B23] border-b border-[#E8D5CE] pb-1">
+                          Resumen de Productos y Fragancias
+                        </h4>
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="text-[#7A685F] uppercase text-[9px] tracking-wider border-b border-[#F3ECE1]">
+                              <th className="pb-1.5 font-medium">Descripción / Producto</th>
+                              <th className="pb-1.5 text-center font-medium">Cant.</th>
+                              <th className="pb-1.5 text-right font-medium">Unitario</th>
+                              <th className="pb-1.5 text-right font-medium">Subtotal</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#F3ECE1]">
+                            {(pedidoReciboActual.items || []).map((it, i) => (
+                              <tr key={i}>
+                                <td className="py-2 font-serif font-bold text-[#3B2B23]">{it.producto_nombre}</td>
+                                <td className="py-2 text-center font-bold">{it.cantidad}</td>
+                                <td className="py-2 text-right text-[#7A685F]">{formatoCOP(it.precio_unitario)}</td>
+                                <td className="py-2 text-right font-bold text-[#3B2B23]">{formatoCOP(it.subtotal)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="text-[11px] text-[#7A685F] bg-[#FAF6F0] px-3 py-2 rounded-lg border border-[#E8D5CE]">
+                        🎁 <strong>Presentación elegida:</strong> {infoOrigen.empaque}
+                      </div>
+
+                      <div className="bg-[#FAF6F0] p-3.5 rounded-xl border border-[#E8D5CE] space-y-1.5 text-xs">
+                        <div className="flex justify-between items-center font-serif font-bold text-[#3B2B23] border-b border-[#E8D5CE] pb-1.5 text-sm">
+                          <span>Valor Total del Pedido:</span>
+                          <span>{formatoCOP(pedidoReciboActual.valor_total)}</span>
+                        </div>
+                        <div className="flex justify-between items-center font-semibold text-[#196F3D] bg-[#D4EFDF] px-3 py-1.5 rounded-lg">
+                          <span>Anticipo 50% (Pagado / Requerido):</span>
+                          <span className="font-bold">{formatoCOP(pedidoReciboActual.abono_50)}</span>
+                        </div>
+                        <div className="flex justify-between items-center font-semibold text-[#3B2B23] bg-white px-3 py-1.5 rounded-lg border border-[#E8D5CE]">
+                          <span>Saldo Contra Entrega:</span>
+                          <span className="font-bold">{formatoCOP(Math.max(0, pedidoReciboActual.valor_total - pedidoReciboActual.abono_50))}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-center space-y-1.5 pt-1.5 border-t border-[#E8D5CE]">
+                        <div className="bg-[#F3ECE1]/60 p-2.5 rounded-xl text-[10px] text-[#7A685F] space-y-0.5">
+                          <p className="font-serif font-bold text-[#3B2B23]">Cuentas Oficiales — María Paula Prada Coronado</p>
+                          <p>Nequi / Daviplata: <strong className="text-[#3B2B23]">313 201 9146</strong> | Bancolombia Ahorros: <strong className="text-[#3B2B23]">22582959122</strong></p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {(modoImpresionRecibo === "SOLO_TARJETA" || (modoImpresionRecibo === "AMBOS" && infoOrigen.tieneDedicatoria)) && (
+                    <div
+                      style={{ pageBreakBefore: modoImpresionRecibo === "AMBOS" ? "always" : "auto" }}
+                      className="bg-[#FAF6F0] max-w-lg mx-auto p-8 rounded-3xl border-2 border-dashed border-[#C89D7C] shadow-lg text-center space-y-5 relative"
+                    >
+                      <div className="bg-white p-8 rounded-2xl border border-[#E8D5CE] space-y-4 shadow-xs">
+                        <SelloGaticoCriolloTarjeta />
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-serif uppercase tracking-[0.3em] text-[#C89D7C] block">
+                            ✨ Un Regalo Hecho a Mano Para Ti ✨
+                          </span>
+                          <h3 className="text-xl font-serif font-bold tracking-[0.2em] text-[#3B2B23]">
+                            ETERNIA CANDLES
+                          </h3>
+                        </div>
+
+                        <div className="py-4 px-6 bg-[#FAF6F0] rounded-2xl border border-[#E8D5CE] space-y-3">
+                          <p className="text-base font-serif italic text-[#3B2B23] leading-relaxed">
+                            &ldquo;{infoOrigen.mensaje || "Que esta luz cálida y su esencia natural acompañen tus momentos más especiales."}&rdquo;
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-around text-xs font-serif pt-2 border-t border-[#F3ECE1]">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-widest text-[#7A685F] block">Para:</span>
+                            <strong className="text-sm text-[#3B2B23]">{infoOrigen.para || pedidoReciboActual.cliente_nombre}</strong>
+                          </div>
+                          <div className="text-[#C89D7C]">♥</div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-widest text-[#7A685F] block">Con amor, de:</span>
+                            <strong className="text-sm text-[#3B2B23]">{infoOrigen.de || "Alguien que te quiere"}</strong>
+                          </div>
+                        </div>
+
+                        <p className="text-[9px] text-[#7A685F] tracking-widest uppercase pt-2">
+                          🕯️ Encender por 2-3 horas la primera vez • Recortar el pabilo a 5mm • @eternia.candles
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* PESTAÑA 5: NUEVOS MOLDES Y VASIJAS */}
         {tabActiva === "MOLDES" && (
           <div className="no-print grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-[#E8D5CE] shadow-xs space-y-4">
@@ -1150,14 +1519,15 @@ export default function AdminEterniaPage() {
           </div>
         )}
 
-        {/* PESTAÑA 5: STOCK DE AROMAS E INSUMOS */}
+        {/* PESTAÑA 6: AROMAS, VISIBILIDAD DE CATÁLOGO E INSUMOS */}
         {tabActiva === "INVENTARIO" && (
           <div className="no-print space-y-6">
+            {/* 1. STOCK DE AROMAS EN VIVO */}
             <div className="bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#F3ECE1] pb-3">
                 <div>
                   <h2 className="text-lg font-serif font-bold text-[#3B2B23] flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-[#C89D7C]" /> Stock de Aromas Disponibles en la Tienda Web
+                    <Flame className="w-5 h-5 text-[#C89D7C]" /> 1. Stock de Aromas Disponibles en la Tienda Web
                   </h2>
                   <p className="text-xs text-[#7A685F]">
                     Activa o desactiva aromas en tiempo real. Si marcas uno como <strong>Agotado</strong>, aparecerá bloqueado en el celular de tus clientes.
@@ -1217,9 +1587,59 @@ export default function AdminEterniaPage() {
               </div>
             </div>
 
+            {/* 2. INTERRUPTOR DE VISIBILIDAD DE VELAS EN LA TIENDA PÚBLICA */}
+            <div className="bg-white rounded-2xl border border-[#E8D5CE] p-6 shadow-xs space-y-4">
+              <div className="border-b border-[#F3ECE1] pb-3">
+                <h2 className="text-lg font-serif font-bold text-[#3B2B23] flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-[#C89D7C]" /> 2. Visibilidad de Velas en la Tienda Pública (Ocultar Velas Sueltas)
+                </h2>
+                <p className="text-xs text-[#7A685F]">
+                  Apaga aquí las velas pequeñas individuales (como la momia o el fantasma suelto) que prefieras vender únicamente en combo o en el Club Eternia.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {productos.map((prod) => {
+                  const estaOculta = idsOcultos.includes(prod.id);
+                  return (
+                    <div
+                      key={prod.id}
+                      className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition ${
+                        estaOculta ? "bg-gray-100 border-gray-300 opacity-70" : "bg-[#FAF6F0] border-[#E8D5CE]"
+                      }`}
+                    >
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-[#7A685F] block">{prod.categoria}</span>
+                        <h4 className="font-serif font-bold text-xs text-[#3B2B23]">{prod.nombre}</h4>
+                        <span className="text-xs font-extrabold text-[#C89D7C]">{formatoCOP(prod.precio_catalogo)}</span>
+                      </div>
+
+                      <button
+                        onClick={() => alternarVisibilidadVelaTienda(prod.id)}
+                        className={`px-3 py-2 rounded-xl text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition shrink-0 ${
+                          estaOculta ? "bg-[#FADBD8] text-[#922B21]" : "bg-[#D4EFDF] text-[#196F3D]"
+                        }`}
+                      >
+                        {estaOculta ? (
+                          <>
+                            <EyeOff className="w-3.5 h-3.5" /> Oculta
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-3.5 h-3.5" /> Visible
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. TABLA DE INSUMOS CON SEMÁFORO */}
             <div className="bg-white rounded-2xl border border-[#E8D5CE] overflow-x-auto shadow-xs">
               <div className="p-5 border-b border-[#F3ECE1]">
-                <h2 className="text-lg font-serif font-bold text-[#3B2B23]">Control de Insumos con Descuento Automático</h2>
+                <h2 className="text-lg font-serif font-bold text-[#3B2B23]">3. Control de Insumos con Descuento Automático</h2>
                 <p className="text-xs text-[#7A685F]">Descuenta automáticamente insumos y empaques según los pedidos aprobados.</p>
               </div>
 
