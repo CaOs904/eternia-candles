@@ -153,9 +153,24 @@ export default function TiendaEterniaPage() {
 
     setEnviando(true);
     try {
-      const pedidosLocalesRaw = localStorage.getItem("eternia_pedidos_v1");
-      const pedidosLocales: PedidoCompleto[] = pedidosLocalesRaw ? JSON.parse(pedidosLocalesRaw) : [];
-      const nuevoNumero = pedidosLocales.length + 1;
+      // Obtener el siguiente consecutivo de manera segura consultando el último pedido en Supabase
+      let nuevoNumero = 1;
+      if (isSupabaseConfigured) {
+        const { data: ultimoPedido, error: errUltimo } = await supabase
+          .from("pedidos")
+          .select("codigo")
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (!errUltimo && ultimoPedido && ultimoPedido.length > 0) {
+          const ultimoCodigo = ultimoPedido[0].codigo; // Ej: "PED-003"
+          const partes = ultimoCodigo.split("-");
+          const numeroActual = parseInt(partes[1], 10);
+          if (!isNaN(numeroActual)) {
+            nuevoNumero = numeroActual + 1;
+          }
+        }
+      }
       const codigoPedido = `PED-${String(nuevoNumero).padStart(3, "0")}`;
 
       const costoTotal = redondearCentena(
@@ -237,7 +252,7 @@ export default function TiendaEterniaPage() {
               costo_unitario: item.costo_unitario,
               cera_unitaria_g: item.cera_unitaria_g,
               fragancia_unitaria_ml: item.fragancia_unitaria_ml,
-              pabilo_unitaria_cm: item.pabilo_unitario_cm,
+              pabilo_total_cm: item.pabilo_unitario_cm * item.cantidad,
               tipo_empaque: item.tipo_empaque,
               subtotal: item.subtotal,
             }))
@@ -246,10 +261,6 @@ export default function TiendaEterniaPage() {
           console.error("Error al insertar en Supabase:", errPed);
         }
       }
-
-      // Respaldo local
-      const actualizados = [nuevoPedido, ...pedidosLocales];
-      localStorage.setItem("eternia_pedidos_v1", JSON.stringify(actualizados));
 
       const textoWA = generarMensajeWhatsAppPedido({
         codigoPedido,
