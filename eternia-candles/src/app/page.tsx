@@ -141,7 +141,6 @@ function determinarEsRecordatorio(prod: ProductoVela): boolean {
   if (IDS_RECORDATORIOS.has(prod.id)) return true;
 
   const n = (prod.nombre || "").toLowerCase();
-  // Las velas en vaso de cristal y los ositos en vaso se venden sueltas (false)
   if (n.includes("vaso") || n.includes("cristal")) return false;
 
   if (
@@ -164,6 +163,11 @@ function determinarEsRecordatorio(prod: ProductoVela): boolean {
     return true;
   }
   return false;
+}
+
+function esProductoCajaDeseos(prod: ProductoVela): boolean {
+  const n = (prod.nombre || "").toLowerCase();
+  return prod.id === "v-1" || prod.id === "v-2" || (n.includes("deseos") && (n.includes("x6") || n.includes("x12")));
 }
 
 function normalizarCatalogoDeseos(lista: ProductoVela[]): ProductoVela[] {
@@ -829,6 +833,53 @@ export default function TiendaEterniaPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF6F0] text-[#3B2B23] flex flex-col font-sans">
+      {/* ESTILOS PASO 4: HOVER SOLO EN ESCRITORIO, SOLO TRANSFORM Y OPACITY, RESPETANDO REDUCED MOTION */}
+      <style>{`
+        .eternia-card {
+          position: relative;
+          z-index: 1;
+          box-shadow: 0 2px 10px -2px rgba(59, 43, 35, 0.06);
+        }
+        .eternia-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          box-shadow: 0 18px 36px -8px rgba(59, 43, 35, 0.14), 0 8px 16px -6px rgba(200, 157, 124, 0.12);
+          opacity: 0;
+          pointer-events: none;
+        }
+        .eternia-card-deseos::after {
+          box-shadow: 0 22px 44px -8px rgba(200, 157, 124, 0.28), 0 10px 22px -6px rgba(59, 43, 35, 0.16);
+        }
+        @media (hover: hover) and (pointer: fine) {
+          @media (prefers-reduced-motion: no-preference) {
+            .eternia-card {
+              will-change: transform;
+              transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .eternia-card::after {
+              transition: opacity 350ms cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .eternia-card:hover {
+              transform: translateY(-4px) scale(1.03);
+              z-index: 20;
+            }
+            .eternia-card:hover::after {
+              opacity: 1;
+            }
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .eternia-card,
+          .eternia-card::after {
+            transition: none !important;
+            transform: none !important;
+            will-change: auto !important;
+          }
+        }
+      `}</style>
+
       <div className="bg-[#3B2B23] text-[#FAF6F0] text-xs sm:text-sm py-2 px-4 text-center font-medium tracking-wide">
         ✨ Velas artesanales hechas con amor y esencia natural • Personaliza tu aroma y tarjeta de regalo • Pedido mínimo $15.000
       </div>
@@ -954,11 +1005,14 @@ export default function TiendaEterniaPage() {
             const claveActual = `${prod.id}__${aromaActual}`;
             const itemEnCarrito = carrito.find((i) => i.clave === claveActual);
             const cantActual = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+            const esCajaDeseos = esProductoCajaDeseos(prod);
 
             return (
               <div
                 key={prod.id}
-                className="bg-white rounded-2xl border border-[#E8D5CE] p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition group"
+                className={`eternia-card ${
+                  esCajaDeseos ? "eternia-card-deseos border-[#C89D7C]/70" : "border-[#E8D5CE]"
+                } bg-white rounded-2xl border p-6 flex flex-col justify-between group`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">
@@ -970,7 +1024,7 @@ export default function TiendaEterniaPage() {
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold font-serif text-[#3B2B23] group-hover:text-[#C89D7C] transition tracking-wide">
+                  <h3 className="text-lg font-bold font-serif text-[#3B2B23] group-hover:text-[#C89D7C] transition-colors tracking-wide">
                     {prod.nombre}
                   </h3>
 
