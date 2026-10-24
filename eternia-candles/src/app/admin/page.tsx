@@ -24,6 +24,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import PreciosTab from "./PreciosTab";
 import {
   CATALOGO_INICIAL_VELAS,
   INSUMOS_INICIALES,
@@ -185,7 +186,7 @@ export default function AdminEterniaPage() {
   const [passwordLogin, setPasswordLogin] = useState<string>("");
   const [errorLogin, setErrorLogin] = useState<string | null>(null);
 
-  const [tabActiva, setTabActiva] = useState<"POS" | "PEDIDOS" | "FINANZAS" | "RECIBO" | "MOLDES" | "INVENTARIO">("POS");
+  const [tabActiva, setTabActiva] = useState<"POS" | "PEDIDOS" | "FINANZAS" | "RECIBO" | "MOLDES" | "INVENTARIO" | "PRECIOS">("POS");
   const [productos, setProductos] = useState<ProductoVela[]>(CATALOGO_INICIAL_VELAS);
   const [idsOcultos, setIdsOcultos] = useState<string[]>([]);
   const [insumos, setInsumos] = useState<InsumoItem[]>(INSUMOS_INICIALES);
@@ -862,6 +863,7 @@ export default function AdminEterniaPage() {
             { id: "RECIBO", label: "4. Recibo y Tarjeta PDF", icon: FileText },
             { id: "MOLDES", label: "5. Nuevos Moldes", icon: PlusCircle },
             { id: "INVENTARIO", label: "6. Aromas, Catálogo e Insumos", icon: Package },
+            { id: "PRECIOS", label: "7. Precios del Catálogo", icon: Sparkles },
           ].map((tab) => {
             const Icon = tab.icon;
             const activa = tabActiva === tab.id;
@@ -1516,6 +1518,9 @@ export default function AdminEterniaPage() {
             </div>
           </div>
         )}
+
+        {/* PESTAÑA 7: PRECIOS DEL CATÁLOGO */}
+        {tabActiva === "PRECIOS" && <PreciosTab />}
 
         {/* PESTAÑA 6: AROMAS, VISIBILIDAD DE CATÁLOGO E INSUMOS */}
         {tabActiva === "INVENTARIO" && (

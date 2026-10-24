@@ -387,10 +387,16 @@ export default function TiendaEterniaPage() {
           .from("productos_velas")
           .select("*")
           .eq("activo_en_tienda", true)
+          .order("orden", { ascending: true })
           .order("created_at", { ascending: true });
-
         if (data && data.length > 0) {
-          const catNubeNormalizado = normalizarCatalogoDeseos(data as ProductoVela[]);
+          const filasMapeadas: ProductoVela[] = data.map((row: any) => ({
+            ...row,
+            id: row.codigo_ref || row.id,
+            esRecordatorio:
+              typeof row.es_recordatorio === "boolean" ? row.es_recordatorio : row.esRecordatorio,
+          }));
+          const catNubeNormalizado = normalizarCatalogoDeseos(filasMapeadas);
           setProductos(catNubeNormalizado);
           localStorage.setItem("eternia_catalogo_v1", JSON.stringify(catNubeNormalizado));
         }
